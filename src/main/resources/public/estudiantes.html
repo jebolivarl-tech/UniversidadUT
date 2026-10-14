@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de estudiantes</title>
+  <style>
+    :root {
+      --azul1: #172554;
+      --azul2: #1d4ed8;
+      --azul3: #e2eafc;
+      --gris-fondo: #f4f6fa;
+      --gris-panel: #ffffff;
+      --gris-borde: #e2e8f0;
+      --gris-texto: #1e293b;
+      --gris-muted: #64748b;
+      --verde: #16a34a;
+      --naranja: #d97706;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--gris-fondo);
+      color: var(--gris-texto);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 22px 16px;
+      border-right: 1px solid var(--gris-borde);
+      background: #fff;
+    }
+
+    .brand {
+      margin: 0 8px 20px;
+      color: var(--azul1);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .brand small {
+      display: block;
+      margin-top: 4px;
+      color: var(--gris-muted);
+      font-size: 10px;
+      letter-spacing: 0;
+    }
+
+    .nav-link {
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 6px;
+      color: var(--gris-texto);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .nav-link:hover { background: #f1f5f9; }
+    .nav-link.active { background: var(--azul3); color: var(--azul2); }
+
+    .sidebar-note {
+      margin: auto 8px 0;
+      color: var(--gris-muted);
+      font-size: 11px;
+    }
+
+    .main { min-width: 0; }
+
+    .topbar {
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--gris-borde);
+      background: #fff;
+      color: var(--gris-muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .content { padding: 22px 24px 30px; }
+
+    h1 {
+      margin: 0;
+      color: var(--azul1);
+      font-size: 25px;
+    }
+
+    .description {
+      margin: 5px 0 16px;
+      color: var(--gris-muted);
+      font-size: 13px;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .kpi {
+      min-height: 88px;
+      padding: 12px 14px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .kpi-label {
+      display: block;
+      color: var(--gris-muted);
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    .kpi-value {
+      display: block;
+      margin-top: 5px;
+      color: var(--azul1);
+      font-size: 25px;
+      font-weight: 700;
+    }
+
+    .kpi-note { color: var(--gris-muted); font-size: 10px; }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      min-width: 0;
+      padding: 15px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .panel-title {
+      margin: 0 0 12px;
+      color: var(--azul1);
+      font-size: 15px;
+    }
+
+    form { display: grid; gap: 9px; }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: var(--gris-texto);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    input, select {
+      width: 100%;
+      min-height: 34px;
+      padding: 6px 9px;
+      border-radius: 5px;
+      border: 1px solid var(--gris-borde);
+      background: white;
+      color: var(--gris-texto);
+      font: inherit;
+      font-weight: 400;
+    }
+
+    input:focus, select:focus {
+      outline: 2px solid rgb(29 78 216 / 18%);
+      border-color: var(--azul2);
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+      margin-top: 5px;
+    }
+
+    button {
+      min-height: 36px;
+      padding: 7px 10px;
+      border: none;
+      border-radius: 6px;
+      background: var(--azul1);
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:hover { filter: brightness(1.1); }
+    button:disabled { cursor: wait; opacity: 0.65; }
+    button.update { background: var(--naranja); }
+    button.delete { background: var(--danger); }
+    button.neutral { background: var(--gris-muted); }
+
+    .filters { display: grid; gap: 8px; margin-bottom: 11px; }
+    .filter-row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(125px, 0.7fr) auto auto; gap: 6px; }
+    .filter-row.secondary { grid-template-columns: minmax(130px, 1fr) repeat(2, minmax(125px, 0.7fr)); }
+
+    #message { min-height: 20px; margin: 6px 0; font-size: 12px; }
+    #contadorEstudiantes { color: var(--gris-muted); font-size: 11px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      font-size: 12px;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--gris-borde);
+      padding: 10px 9px;
+      text-align: left;
+    }
+
+    th {
+      background: #f1f5f9;
+      color: var(--gris-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+    }
+
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #f8fbff; }
+    tbody tr.selected { background: var(--azul3); }
+
+    .table-wrap { overflow: auto; max-height: 56vh; border: 1px solid var(--gris-borde); border-radius: 5px; }
+    .empty { padding: 18px; color: var(--gris-muted); text-align: center; }
+
+    @media (max-width: 1050px) {
+      .workspace { grid-template-columns: minmax(240px, 300px) minmax(0, 1fr); }
+      .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filter-row { grid-template-columns: 1fr 1fr; }
+      .filter-row.secondary { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 760px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { padding: 12px; border-right: 0; border-bottom: 1px solid var(--gris-borde); }
+      .brand { margin-bottom: 4px; }
+      .sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
+      .sidebar-note { display: none; }
+      .content { padding: 16px 12px 24px; }
+      .topbar { padding: 10px 12px; }
+      .workspace { grid-template-columns: 1fr; }
+      .kpis { gap: 8px; }
+      h1 { font-size: 21px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">Universidad del Tolima<small>SISTEMA ACADÉMICO</small></div>
+      <nav aria-label="Navegación principal">
+        <a class="nav-link" href="menu.html">Panel de Control</a>
+        <a class="nav-link active" href="estudiantes.html" aria-current="page">Gestión de Estudiantes</a>
+        <a class="nav-link" href="carreras.html">Carreras y Facultades</a>
+      </nav>
+      <div class="sidebar-note">Base de datos: MySQL</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <span>Sistema Académico / Gestión de Estudiantes</span>
+        <span id="fechaActual"></span>
+      </header>
+
+      <div class="content">
+        <h1>Registro y Catálogo de Estudiantes</h1>
+        <p class="description">Consulta, registra y actualiza estudiantes, con búsqueda y filtros por carrera y fecha.</p>
+
+        <section class="kpis" aria-label="Resumen de estudiantes">
+          <div class="kpi"><span class="kpi-label">TOTAL ESTUDIANTES</span><strong id="kpiTotal" class="kpi-value">0</strong><span class="kpi-note">Registrados en el sistema</span></div>
+          <div class="kpi"><span class="kpi-label">CARRERAS VINCULADAS</span><strong id="kpiCarreras" class="kpi-value">0</strong><span class="kpi-note">Programas disponibles</span></div>
+          <div class="kpi"><span class="kpi-label">RESULTADOS FILTRADOS</span><strong id="kpiVisibles" class="kpi-value">0</strong><span class="kpi-note">Coinciden con la búsqueda</span></div>
+          <div class="kpi"><span class="kpi-label">EDAD PROMEDIO</span><strong id="kpiEdad" class="kpi-value">-</strong><span class="kpi-note">Según fecha de nacimiento</span></div>
+        </section>
+
+        <div class="workspace">
+          <section class="panel" aria-labelledby="formTitle">
+            <h2 id="formTitle" class="panel-title">Formulario Estudiante</h2>
+            <form id="estudianteForm">
+              <label for="estudianteId">ID (automático)
+                <input id="estudianteId" type="text" readonly aria-readonly="true" />
+              </label>
+              <label for="nombre">Nombre(s) *
+                <input type="text" id="nombre" placeholder="Ej: Valeria Sofía" maxlength="100" required />
+              </label>
+              <label for="apellido">Apellido(s) *
+                <input type="text" id="apellido" placeholder="Ej: Navarro Morales" maxlength="100" required />
+              </label>
+              <label for="email">Correo electrónico
+                <input type="email" id="email" placeholder="correo@ejemplo.com" maxlength="150" required />
+              </label>
+              <label for="fechaNacimiento">Fecha de nacimiento
+                <input type="date" id="fechaNacimiento" required />
+              </label>
+              <label for="idCarrera">Carrera universitaria *
+                <select id="idCarrera" required><option value="">Cargando carreras...</option></select>
+              </label>
+              <div class="button-row">
+                <button type="submit" id="guardarEstudiante">Registrar</button>
+                <button type="button" id="actualizarEstudiante" class="update" disabled>Actualizar</button>
+                <button type="button" id="eliminarEstudiante" class="delete" disabled>Eliminar</button>
+                <button type="button" id="limpiarEstudiante" class="neutral">Limpiar campos</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel" aria-label="Catálogo de estudiantes">
+            <div class="filters">
+              <div class="filter-row">
+                <input id="buscarEstudiante" type="search" placeholder="Buscar por ID, nombre, apellido o correo..." aria-label="Texto de búsqueda" />
+                <select id="filtroCarrera" aria-label="Filtrar por carrera"><option value="">Todas las carreras</option></select>
+                <button type="button" id="btnBuscar">Buscar</button>
+                <button type="button" id="btnRestablecer" class="neutral">Restablecer</button>
+              </div>
+              <div class="filter-row secondary">
+                <select id="buscarEn" aria-label="Buscar en">
+                  <option value="todos">Buscar en: todos</option>
+                  <option value="id">Buscar en: ID</option>
+                  <option value="nombre">Buscar en: nombre</option>
+                  <option value="apellido">Buscar en: apellido</option>
+                  <option value="email">Buscar en: correo</option>
+                </select>
+                <label for="fechaDesde">Nacidos desde
+                  <input id="fechaDesde" type="date" />
+                </label>
+                <label for="fechaHasta">Nacidos hasta
+                  <input id="fechaHasta" type="date" />
+                </label>
+              </div>
+            </div>
+
+            <div id="message" role="status" aria-live="polite"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Correo</th><th>F. nacimiento</th><th>Carrera</th></tr></thead>
+                <tbody id="tablaEstudiantes"></tbody>
+              </table>
+              <div id="estudiantesVacio" class="empty" hidden>No hay estudiantes registrados.</div>
+            </div>
+            <p id="contadorEstudiantes">Mostrando 0 de 0 estudiantes</p>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

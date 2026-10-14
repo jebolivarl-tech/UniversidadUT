@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#202927" />
+  <title>Universidad DAO | Gestión local</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #202927;
+      --ink-soft: #34423d;
+      --paper: #f3f5f1;
+      --surface: #ffffff;
+      --line: #d8dfd9;
+      --muted: #65736c;
+      --green: #176b52;
+      --green-dark: #10523f;
+      --green-pale: #e4f1eb;
+      --gold: #e4b64b;
+      --danger: #b23e37;
+      --danger-pale: #fbe9e7;
+      --shadow: 0 20px 55px rgb(22 39 31 / 10%);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Trebuchet MS", Tahoma, sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    [hidden] { display: none !important; }
+
+    .login-screen {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(340px, 470px);
+      background: var(--ink);
+    }
+
+    .welcome-panel {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: clamp(28px, 6vw, 76px);
+      overflow: hidden;
+      color: #f6f8f4;
+      background-color: var(--ink);
+      background-image: linear-gradient(135deg, transparent 0 58%, rgb(228 182 75 / 10%) 58% 58.2%, transparent 58.2%),
+        radial-gradient(ellipse at 78% 74%, rgb(23 107 82 / 44%), transparent 48%);
+    }
+
+    .welcome-panel::after {
+      position: absolute;
+      right: -100px;
+      bottom: 12%;
+      width: 48vw;
+      height: 48vw;
+      border: 1px solid rgb(228 182 75 / 20%);
+      border-radius: 50%;
+      content: "";
+      pointer-events: none;
+    }
+
+    .brand-line, .brand-mark { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      justify-content: center;
+      border: 1px solid rgb(228 182 75 / 60%);
+      border-radius: 50%;
+      color: var(--gold);
+      font-weight: 800;
+    }
+
+    .brand-name { font-size: 14px; font-weight: 700; }
+    .brand-caption { margin-top: 3px; color: #b8c2bb; font-size: 11px; }
+    .welcome-copy { position: relative; z-index: 1; max-width: 600px; padding: 60px 0; }
+    .eyebrow { color: var(--gold); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .welcome-copy h1 { max-width: 560px; margin: 14px 0; font-size: clamp(38px, 5vw, 66px); line-height: 1.02; }
+    .welcome-copy p { max-width: 430px; margin: 0; color: #c8d1cb; font-size: 16px; line-height: 1.65; }
+    .local-note { position: relative; z-index: 1; color: #aeb9b2; font-size: 12px; }
+
+    .login-panel {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      background: var(--surface);
+    }
+
+    .login-content { width: min(100%, 380px); }
+    .login-content h2 { margin: 0 0 8px; font-size: 28px; }
+    .login-intro { margin: 0 0 26px; color: var(--muted); line-height: 1.55; }
+    .form-stack { display: grid; gap: 16px; }
+    label { display: grid; gap: 7px; color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+    input {
+      width: 100%;
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+    }
+    input:focus-visible, button:focus-visible {
+      outline: 3px solid rgb(23 107 82 / 30%);
+      outline-offset: 2px;
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 10px 14px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      background: var(--green);
+      color: #fff;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background-color 140ms ease, border-color 140ms ease;
+    }
+    .button:hover { background: var(--green-dark); }
+    .button.secondary { border-color: var(--line); background: #fff; color: var(--ink); }
+    .button.secondary:hover { background: var(--paper); }
+    .button.danger { background: var(--danger); }
+    .button.danger:hover { background: #922e29; }
+    .button.small { min-height: 34px; padding: 6px 10px; font-size: 12px; }
+
+    .message { min-height: 22px; margin: 12px 0 0; color: var(--danger); font-size: 13px; }
+    .message.success { color: var(--green-dark); }
+    .local-warning {
+      margin: 18px 0 0;
+      padding: 12px;
+      border-left: 3px solid var(--gold);
+      background: #fbf7e9;
+      color: #66521f;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .application { min-height: 100vh; }
+    .topbar {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px clamp(18px, 4vw, 48px);
+      background: var(--ink);
+      color: white;
+    }
+    .topbar .brand-mark { width: 36px; height: 36px; }
+    .topbar-actions { display: flex; align-items: center; gap: 16px; }
+    .user-label { color: #d5ded8; font-size: 13px; }
+    .topbar .button { min-height: 36px; padding: 7px 12px; border-color: #617169; background: transparent; font-size: 12px; }
+    .topbar .button:hover { background: #34423d; }
+
+    .workspace {
+      width: min(1240px, 100%);
+      margin: 0 auto;
+      padding: 28px clamp(16px, 4vw, 48px) 52px;
+    }
+    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+    .page-heading h1 { margin: 0; font-size: 28px; }
+    .page-heading p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
+    .local-badge { padding: 7px 10px; border: 1px solid #bfd7c9; border-radius: 5px; background: var(--green-pale); color: var(--green-dark); font-size: 11px; font-weight: 700; }
+
+    .navigation { display: flex; gap: 6px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+    .nav-button { min-height: 42px; padding: 10px 15px; border: 0; border-bottom: 3px solid transparent; background: transparent; color: var(--muted); font-weight: 700; cursor: pointer; }
+    .nav-button[aria-current="page"] { border-bottom-color: var(--green); color: var(--green-dark); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .stat { min-height: 112px; padding: 18px; border: 1px solid var(--line); border-top: 3px solid var(--green); background: var(--surface); }
+    .stat:nth-child(2) { border-top-color: var(--gold); }
+    .stat:nth-child(3) { border-top-color: #6f8d7f; }
+    .stat-label { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+    .stat-value { display: block; margin-top: 10px; font-size: 30px; font-weight: 800; }
+
+    .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
+    .section-heading h2 { margin: 0; font-size: 18px; }
+    .quick-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .panel { padding: 20px; border: 1px solid var(--line); background: var(--surface); }
+    .module-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 18px; align-items: start; }
+    .module-form { display: grid; gap: 13px; padding: 18px; border: 1px solid var(--line); background: var(--surface); }
+    .form-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+    th { background: #eaf0eb; color: var(--ink-soft); font-size: 11px; text-transform: uppercase; }
+    tbody tr:hover { background: #f5f8f5; }
+    .row-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .empty-state { padding: 24px; color: var(--muted); text-align: center; }
+
+    @media (max-width: 820px) {
+      .login-screen { grid-template-columns: 1fr; }
+      .welcome-panel { min-height: 260px; padding: 24px; }
+      .welcome-copy { padding: 30px 0 10px; }
+      .welcome-copy h1 { font-size: 38px; }
+      .welcome-copy p, .local-note { display: none; }
+      .login-panel { padding: 28px 20px 40px; }
+      .module-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 580px) {
+      .topbar { align-items: flex-start; }
+      .topbar-actions { flex-direction: column; align-items: flex-end; gap: 8px; }
+      .user-label { max-width: 150px; overflow-wrap: anywhere; text-align: right; }
+      .workspace { padding-top: 20px; }
+      .page-heading { align-items: flex-start; flex-direction: column; }
+      .stats { grid-template-columns: 1fr; gap: 9px; }
+      .stat { min-height: 86px; }
+      .navigation { overflow-x: auto; }
+      .nav-button { flex: 0 0 auto; padding-inline: 11px; }
+      .panel, .module-form { padding: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <section id="loginScreen" class="login-screen" aria-label="Acceso local">
+    <div class="welcome-panel">
+      <div class="brand-line">
+        <span class="brand-mark" aria-hidden="true">UT</span>
+        <div><div class="brand-name">Universidad DAO</div><div class="brand-caption">Gestión académica</div></div>
+      </div>
+      <div class="welcome-copy">
+        <span class="eyebrow">Sistema local</span>
+        <h1>Administración académica, en un solo lugar.</h1>
+        <p>Estudiantes y carreras guardados en este navegador, disponibles sin conexión.</p>
+      </div>
+      <div class="local-note">Aplicación autónoma. No requiere servidor ni conexión a internet.</div>
+    </div>
+
+    <div class="login-panel">
+      <div class="login-content">
+        <div id="firstRunPanel" hidden>
+          <h2>Crear cuenta local</h2>
+          <p class="login-intro">Configura el primer usuario para este navegador.</p>
+          <form id="setupForm" class="form-stack">
+            <label for="setupUsername">Usuario
+              <input id="setupUsername" autocomplete="username" minlength="3" maxlength="40" required />
+            </label>
+            <label for="setupPassword">Contraseña
+              <input id="setupPassword" type="password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <label for="setupPasswordConfirm">Confirmar contraseña
+              <input id="setupPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <button class="button" type="submit">Crear cuenta y continuar</button>
+          </form>
+          <p id="setupMessage" class="message" role="status" aria-live="polite"></p>
+          <p class="local-warning">Esta cuenta solo organiza el uso local. La información queda en el almacenamiento del navegador; no uses contraseñas ni datos sensibles.</p>
+        </div>
+
+        <div id="loginPanel" hidden>
+          <h2>Iniciar sesión</h2>
+          <p class="login-intro">Ingresa con la cuenta local de este navegador.</p>
+          <form id="loginForm" class="form-stack">
+            <label for="username">Usuario
+              <input id="username" autocomplete="username" required />
+            </label>
+            <label for="password">Contraseña
+              <input id="password" type="password" autocomplete="current-password" required />
+            </label>
+            <button class="button" type="submit">Ingresar</button>
+          </form>
+          <p id="loginMessage" class="message" role="status" aria-live="polite"></p>
+          <p class="local-warning">El acceso local no sustituye autenticación segura para una aplicación conectada a una red o con datos sensibles.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="application" class="application" hidden>
+    <header class="topbar">
+      <div class="brand-line">
+        <span class="brand-mark" aria-hidden="true">UT</span>
+        <div><div class="brand-name">Universidad DAO</div><div class="brand-caption">Sistema académico local</div></div>
+      </div>
+      <div class="topbar-actions">
+        <span id="currentUser" class="user-label"></span>
+        <button id="logoutButton" class="button" type="button">Cerrar sesión</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <div class="page-heading">
+        <div><h1>Panel académico</h1><p>Administración de estudiantes y carreras</p></div>
+        <span class="local-badge">DATOS EN ESTE NAVEGADOR</span>
+      </div>
+
+      <nav class="navigation" aria-label="Secciones">
+        <button class="nav-button" type="button" data-screen="dashboard" aria-current="page">Resumen</button>
+        <button class="nav-button" type="button" data-screen="students">Estudiantes</button>
+        <button class="nav-button" type="button" data-screen="careers">Carreras</button>
+      </nav>
+
+      <section id="dashboardView" class="screen" aria-labelledby="dashboardTitle">
+        <div class="stats" aria-label="Totales">
+          <div class="stat"><span class="stat-label">Estudiantes</span><strong id="studentCount" class="stat-value">0</strong></div>
+          <div class="stat"><span class="stat-label">Carreras</span><strong id="careerCount" class="stat-value">0</strong></div>
+          <div class="stat"><span class="stat-label">Sesión</span><strong class="stat-value" style="font-size:20px">Activa</strong></div>
+        </div>
+        <section class="panel">
+          <div class="section-heading"><h2 id="dashboardTitle">Accesos directos</h2></div>
+          <div class="quick-actions">
+            <button class="button" type="button" data-screen="students">Gestionar estudiantes</button>
+            <button class="button secondary" type="button" data-screen="careers">Gestionar carreras</button>
+          </div>
+        </section>
+      </section>
+
+      <section id="studentsView" class="screen" aria-labelledby="studentsTitle" hidden>
+        <div class="section-heading"><h2 id="studentsTitle">Estudiantes</h2><span id="studentTotal" class="local-badge">0 registros</span></div>
+        <div class="module-grid">
+          <form id="studentForm" class="module-form">
+            <h3 id="studentFormTitle" style="margin:0">Registrar estudiante</h3>
+            <label for="studentName">Nombre
+              <input id="studentName" maxlength="100" required />
+            </label>
+            <label for="studentSurname">Apellido
+              <input id="studentSurname" maxlength="100" required />
+            </label>
+            <label for="studentEmail">Correo electrónico
+              <input id="studentEmail" type="email" maxlength="150" required />
+            </label>
+            <label for="studentBirthDate">Fecha de nacimiento
+              <input id="studentBirthDate" type="date" required />
+            </label>
+            <label for="studentCareerId">ID de carrera
+              <input id="studentCareerId" type="number" min="1" step="1" required />
+            </label>
+            <div class="form-actions">
+              <button id="saveStudentButton" class="button" type="submit">Guardar</button>
+              <button id="cancelStudentButton" class="button secondary" type="button" hidden>Cancelar</button>
+            </div>
+          </form>
+          <div>
+            <div id="studentMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Correo</th><th>Nacimiento</th><th>Carrera</th><th>Acciones</th></tr></thead>
+                <tbody id="studentRows"></tbody>
+              </table>
+              <div id="studentEmpty" class="empty-state" hidden>No hay estudiantes guardados.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="careersView" class="screen" aria-labelledby="careersTitle" hidden>
+        <div class="section-heading"><h2 id="careersTitle">Carreras</h2><span id="careerTotal" class="local-badge">0 registros</span></div>
+        <div class="module-grid">
+          <form id="careerForm" class="module-form">
+            <h3 id="careerFormTitle" style="margin:0">Registrar carrera</h3>
+            <label for="careerName">Nombre de la carrera
+              <input id="careerName" maxlength="100" required />
+            </label>
+            <label for="facultyId">ID de facultad
+              <input id="facultyId" type="number" min="1" step="1" required />
+            </label>
+            <div class="form-actions">
+              <button id="saveCareerButton" class="button" type="submit">Guardar</button>
+              <button id="cancelCareerButton" class="button secondary" type="button" hidden>Cancelar</button>
+            </div>
+          </form>
+          <div>
+            <div id="careerMessage" class="message" role="status" aria-live="polite"></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Nombre</th><th>Facultad</th><th>Acciones</th></tr></thead>
+                <tbody id="careerRows"></tbody>
+              </table>
+              <div id="careerEmpty" class="empty-state" hidden>No hay carreras guardadas.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    'use strict';
+
+    const keys = {
+      users: 'universidad-local.users.v1',
+      students: 'universidad-local.students.v1',
+      careers: 'universidad-local.careers.v1',
+      session: 'universidad-local.session.v1'
+    };
+
+    let selectedStudentId = null;
+    let selectedCareerId = null;
+
+    function readList(key) {
+      const value = localStorage.getItem(key);
+      if (value === null) return [];
+      const parsed = JSON.parse(value);
+      if (!Array.isArray(parsed)) throw new Error('Los datos locales tienen un formato inválido.');
+      return parsed;
+    }
+
+    function saveList(key, values) {
+      localStorage.setItem(key, JSON.stringify(values));
+    }
+
+    function setMessage(id, text, isError = false) {
+      const element = document.getElementById(id);
+      element.textContent = text;
+      element.classList.toggle('success', !isError && Boolean(text));
+    }
+
+    function showLocalError(error) {
+      const text = 'No fue posible acceder al almacenamiento local de este navegador.';
+      setMessage('loginMessage', text, true);
+      setMessage('setupMessage', text, true);
+      console.error(error);
+    }
+
+    function showApplicationScreen(screenName) {
+      document.getElementById('loginScreen').hidden = true;
+      document.getElementById('application').hidden = false;
+      document.querySelectorAll('.screen').forEach((screen) => {
+        screen.hidden = screen.id !== `${screenName}View`;
+      });
+      document.querySelectorAll('[data-screen]').forEach((button) => {
+        if (button.classList.contains('nav-button')) {
+          if (button.dataset.screen === screenName) button.setAttribute('aria-current', 'page');
+          else button.removeAttribute('aria-current');
+        }
+      });
+      renderDashboard();
+      if (screenName === 'students') renderStudents();
+      if (screenName === 'careers') renderCareers();
+    }
+
+    function showLogin() {
+      document.getElementById('application').hidden = true;
+      document.getElementById('loginScreen').hidden = false;
+      const users = readList(keys.users);
+      document.getElementById('firstRunPanel').hidden = users.length > 0;
+      document.getElementById('loginPanel').hidden = users.length === 0;
+    }
+
+    function renderDashboard() {
+      document.getElementById('studentCount').textContent = readList(keys.students).length;
+      document.getElementById('careerCount').textContent = readList(keys.careers).length;
+      document.getElementById('currentUser').textContent = `Sesión: ${localStorage.getItem(keys.session) || ''}`;
+    }
+
+    function createCell(value) {
+      const cell = document.createElement('td');
+      cell.textContent = value === null || value === undefined ? '' : String(value);
+      return cell;
+    }
+
+    function createActionButton(label, className, action) {
+      const button = document.createElement('button');
+      button.className = `button small ${className}`.trim();
+      button.type = 'button';
+      button.textContent = label;
+      button.addEventListener('click', action);
+      return button;
+    }
+
+    function renderStudents() {
+      const students = readList(keys.students);
+      const body = document.getElementById('studentRows');
+      body.replaceChildren();
+      document.getElementById('studentEmpty').hidden = students.length > 0;
+      document.getElementById('studentTotal').textContent = `${students.length} ${students.length === 1 ? 'registro' : 'registros'}`;
+
+      students.forEach((student) => {
+        const row = document.createElement('tr');
+        [student.id, student.name, student.surname, student.email, formatDate(student.birthDate), student.careerId].forEach((value) => row.appendChild(createCell(value)));
+        const actions = document.createElement('td');
+        actions.className = 'row-actions';
+        actions.append(
+          createActionButton('Editar', 'secondary', () => editStudent(student)),
+          createActionButton('Eliminar', 'danger', () => deleteStudent(student.id))
+        );
+        row.appendChild(actions);
+        body.appendChild(row);
+      });
+    }
+
+    function renderCareers() {
+      const careers = readList(keys.careers);
+      const body = document.getElementById('careerRows');
+      body.replaceChildren();
+      document.getElementById('careerEmpty').hidden = careers.length > 0;
+      document.getElementById('careerTotal').textContent = `${careers.length} ${careers.length === 1 ? 'registro' : 'registros'}`;
+
+      careers.forEach((career) => {
+        const row = document.createElement('tr');
+        [career.id, career.name, career.facultyId].forEach((value) => row.appendChild(createCell(value)));
+        const actions = document.createElement('td');
+        actions.className = 'row-actions';
+        actions.append(
+          createActionButton('Editar', 'secondary', () => editCareer(career)),
+          createActionButton('Eliminar', 'danger', () => deleteCareer(career.id))
+        );
+        row.appendChild(actions);
+        body.appendChild(row);
+      });
+    }
+
+    function formatDate(value) {
+      if (!value) return '';
+      const [year, month, day] = value.split('-');
+      return `${day}/${month}/${year}`;
+    }
+
+    function nextId(items) {
+      return items.reduce((largest, item) => Math.max(largest, Number(item.id) || 0), 0) + 1;
+    }
+
+    function resetStudentForm() {
+      selectedStudentId = null;
+      document.getElementById('studentForm').reset();
+      document.getElementById('studentFormTitle').textContent = 'Registrar estudiante';
+      document.getElementById('saveStudentButton').textContent = 'Guardar';
+      document.getElementById('cancelStudentButton').hidden = true;
+    }
+
+    function editStudent(student) {
+      selectedStudentId = student.id;
+      document.getElementById('studentName').value = student.name;
+      document.getElementById('studentSurname').value = student.surname;
+      document.getElementById('studentEmail').value = student.email;
+      document.getElementById('studentBirthDate').value = student.birthDate;
+      document.getElementById('studentCareerId').value = student.careerId;
+      document.getElementById('studentFormTitle').textContent = `Editar estudiante #${student.id}`;
+      document.getElementById('saveStudentButton').textContent = 'Guardar cambios';
+      document.getElementById('cancelStudentButton').hidden = false;
+      document.getElementById('studentName').focus();
+    }
+
+    function saveStudent(event) {
+      event.preventDefault();
+      try {
+        const students = readList(keys.students);
+        const student = {
+          id: selectedStudentId ?? nextId(students),
+          name: document.getElementById('studentName').value.trim(),
+          surname: document.getElementById('studentSurname').value.trim(),
+          email: document.getElementById('studentEmail').value.trim(),
+          birthDate: document.getElementById('studentBirthDate').value,
+          careerId: Number(document.getElementById('studentCareerId').value)
+        };
+        if (!student.name || !student.surname || !student.email || !student.birthDate || !Number.isInteger(student.careerId) || student.careerId < 1) {
+          setMessage('studentMessage', 'Completa los campos con valores válidos.', true);
+          return;
+        }
+        const duplicateEmail = students.some((item) => item.email.toLowerCase() === student.email.toLowerCase() && item.id !== selectedStudentId);
+        if (duplicateEmail) {
+          setMessage('studentMessage', 'Ya existe un estudiante con ese correo.', true);
+          return;
+        }
+        const updated = selectedStudentId === null
+          ? [...students, student]
+          : students.map((item) => item.id === selectedStudentId ? student : item);
+        const wasEditing = selectedStudentId !== null;
+        saveList(keys.students, updated);
+        resetStudentForm();
+        setMessage('studentMessage', wasEditing ? 'Estudiante actualizado.' : 'Estudiante guardado.');
+        renderStudents();
+        renderDashboard();
+      } catch (error) {
+        setMessage('studentMessage', 'No fue posible guardar el estudiante.', true);
+        console.error(error);
+      }
+    }
+
+    function deleteStudent(id) {
+      if (!window.confirm('¿Eliminar este estudiante?')) return;
+      try {
+        saveList(keys.students, readList(keys.students).filter((student) => student.id !== id));
+        if (selectedStudentId === id) resetStudentForm();
+        setMessage('studentMessage', 'Estudiante eliminado.');
+        renderStudents();
+        renderDashboard();
+      } catch (error) {
+        setMessage('studentMessage', 'No fue posible eliminar el estudiante.', true);
+        console.error(error);
+      }
+    }
+
+    function resetCareerForm() {
+      selectedCareerId = null;
+      document.getElementById('careerForm').reset();
+      document.getElementById('careerFormTitle').textContent = 'Registrar carrera';
+      document.getElementById('saveCareerButton').textContent = 'Guardar';
+      document.getElementById('cancelCareerButton').hidden = true;
+    }
+
+    function editCareer(career) {
+      selectedCareerId = career.id;
+      document.getElementById('careerName').value = career.name;
+      document.getElementById('facultyId').value = career.facultyId;
+      document.getElementById('careerFormTitle').textContent = `Editar carrera #${career.id}`;
+      document.getElementById('saveCareerButton').textContent = 'Guardar cambios';
+      document.getElementById('cancelCareerButton').hidden = false;
+      document.getElementById('careerName').focus();
+    }
+
+    function saveCareer(event) {
+      event.preventDefault();
+      try {
+        const careers = readList(keys.careers);
+        const career = {
+          id: selectedCareerId ?? nextId(careers),
+          name: document.getElementById('careerName').value.trim(),
+          facultyId: Number(document.getElementById('facultyId').value)
+        };
+        if (!career.name || !Number.isInteger(career.facultyId) || career.facultyId < 1) {
+          setMessage('careerMessage', 'Ingresa un nombre y un ID de facultad válido.', true);
+          return;
+        }
+        const duplicateName = careers.some((item) => item.name.toLowerCase() === career.name.toLowerCase() && item.id !== selectedCareerId);
+        if (duplicateName) {
+          setMessage('careerMessage', 'Ya existe una carrera con ese nombre.', true);
+          return;
+        }
+        const updated = selectedCareerId === null
+          ? [...careers, career]
+          : careers.map((item) => item.id === selectedCareerId ? career : item);
+        saveList(keys.careers, updated);
+        const wasEditing = selectedCareerId !== null;
+        resetCareerForm();
+        setMessage('careerMessage', wasEditing ? 'Carrera actualizada.' : 'Carrera guardada.');
+        renderCareers();
+        renderDashboard();
+      } catch (error) {
+        setMessage('careerMessage', 'No fue posible guardar la carrera.', true);
+        console.error(error);
+      }
+    }
+
+    function deleteCareer(id) {
+      if (readList(keys.students).some((student) => student.careerId === id)) {
+        setMessage('careerMessage', 'No se puede eliminar: hay estudiantes asociados a esta carrera.', true);
+        return;
+      }
+      if (!window.confirm('¿Eliminar esta carrera?')) return;
+      try {
+        saveList(keys.careers, readList(keys.careers).filter((career) => career.id !== id));
+        if (selectedCareerId === id) resetCareerForm();
+        setMessage('careerMessage', 'Carrera eliminada.');
+        renderCareers();
+        renderDashboard();
+      } catch (error) {
+        setMessage('careerMessage', 'No fue posible eliminar la carrera.', true);
+        console.error(error);
+      }
+    }
+
+    document.getElementById('setupForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      try {
+        const username = document.getElementById('setupUsername').value.trim();
+        const password = document.getElementById('setupPassword').value;
+        const confirmation = document.getElementById('setupPasswordConfirm').value;
+        if (username.length < 3 || password.length < 8) {
+          setMessage('setupMessage', 'Usa un usuario de 3 caracteres y una contraseña de al menos 8.', true);
+          return;
+        }
+        if (password !== confirmation) {
+          setMessage('setupMessage', 'Las contraseñas no coinciden.', true);
+          return;
+        }
+        saveList(keys.users, [{ username: username.toLowerCase(), password }]);
+        localStorage.setItem(keys.session, username);
+        showApplicationScreen('dashboard');
+      } catch (error) {
+        showLocalError(error);
+      }
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      try {
+        const username = document.getElementById('username').value.trim().toLowerCase();
+        const password = document.getElementById('password').value;
+        const user = readList(keys.users).find((account) => account.username === username && account.password === password);
+        if (!user) {
+          setMessage('loginMessage', 'Usuario o contraseña incorrectos.', true);
+          return;
+        }
+        localStorage.setItem(keys.session, user.username);
+        setMessage('loginMessage', '', false);
+        showApplicationScreen('dashboard');
+      } catch (error) {
+        showLocalError(error);
+      }
+    });
+
+    document.getElementById('studentForm').addEventListener('submit', saveStudent);
+    document.getElementById('careerForm').addEventListener('submit', saveCareer);
+    document.getElementById('cancelStudentButton').addEventListener('click', resetStudentForm);
+    document.getElementById('cancelCareerButton').addEventListener('click', resetCareerForm);
+
+    document.querySelectorAll('[data-screen]').forEach((button) => {
+      button.addEventListener('click', () => showApplicationScreen(button.dataset.screen));
+    });
+
+    document.getElementById('logoutButton').addEventListener('click', () => {
+      localStorage.removeItem(keys.session);
+      document.getElementById('loginForm').reset();
+      showLogin();
+    });
+
+    try {
+      const currentSession = localStorage.getItem(keys.session);
+      if (currentSession && readList(keys.users).some((user) => user.username === currentSession.toLowerCase())) {
+        showApplicationScreen('dashboard');
+      } else {
+        localStorage.removeItem(keys.session);
+        showLogin();
+      }
+    } catch (error) {
+      showLocalError(error);
+      document.getElementById('loginScreen').hidden = false;
+      document.getElementById('application').hidden = true;
+    }
+  </script>
+</body>
+</html>

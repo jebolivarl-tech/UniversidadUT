@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel de control - Universidad</title>
+  <link rel="stylesheet" href="menu.css" />
+</head>
+<body>
+  <main class="desktop" aria-labelledby="menu-title">
+    <section class="menu-window">
+      <h1 id="menu-title">PANEL DE CONTROL ACADÉMICO</h1>
+
+      <nav class="module-actions" aria-label="Módulos académicos">
+        <a class="module-button" href="estudiantes.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Gestión de Estudiantes</a>
+        <a class="module-button" href="carreras.html" data-roles="ADMINISTRATIVO" hidden>Gestión de Carreras</a>
+      </nav>
+
+      <form id="logoutForm" class="logout-form">
+        <button class="logout-button" type="submit">Cerrar Sesión</button>
+      </form>
+    </section>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>

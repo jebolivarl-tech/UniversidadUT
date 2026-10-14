@@ -1,0 +1,8 @@
+target/
+.git/
+.env
+db-dump-original/
+*.md
+src/main/resources/application-local.properties
+application-local.properties
+.vscode/

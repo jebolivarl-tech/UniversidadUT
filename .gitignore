@@ -1,0 +1,8 @@
+target/
+.env
+*.log
+.github/modernize/
+db-dump-original/
+src/main/resources/application-local.properties
+application-local.properties
+.vscode/

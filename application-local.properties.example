@@ -1,0 +1,5 @@
+# Copie este archivo a src/main/resources/application-local.properties (o a la raíz del proyecto como application-local.properties) y edítelo.
+# Este archivo no se sube a git ni entra en la imagen Docker. En producción use variables de entorno.
+DB_URL=jdbc:mysql://localhost:3306/universidad
+DB_USER=root
+DB_PASSWORD=root

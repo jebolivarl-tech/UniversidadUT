@@ -1,0 +1,37 @@
+# Despliegue completo en un VPS: app + MySQL. Uso:  cp .env.example .env  (editar)  y luego  docker compose up -d --build
+services:
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?defina MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: universidad
+      MYSQL_USER: ${DB_USER:?defina DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD}
+    volumes:
+      - dbdata:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:mysql://db:3306/universidad
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      COOKIE_SECURE: "true"   # requiere HTTPS delante (proxy/hosting). Use "false" solo para probar por http.
+      TRUST_PROXY: "true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  dbdata:

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carreras - Universidad</title>
+  <style>
+    :root {
+      --azul1: #172554;
+      --azul2: #1d4ed8;
+      --azul3: #dbeafe;
+      --gris-fondo: #f4f6fa;
+      --gris-panel: #ffffff;
+      --gris-borde: #dfe6ee;
+      --gris-texto: #1f2937;
+      --gris-muted: #64748b;
+      --verde: #16a34a;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--gris-fondo);
+      color: var(--gris-texto);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      padding: 24px 18px;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--gris-panel);
+      border: 1px solid var(--gris-borde);
+      border-radius: 18px;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+      padding: 26px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--gris-borde);
+    }
+
+    .brand {
+      font-size: 11px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      color: var(--gris-muted);
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 2rem;
+      color: var(--azul1);
+      font-weight: 700;
+    }
+
+    .back {
+      text-decoration: none;
+      background: var(--azul1);
+      color: white;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, #f8fbff 0%, #f3f7ff 100%);
+      border: 1px solid var(--gris-borde);
+      border-radius: 12px;
+      padding: 18px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .item {
+      background: white;
+      border: 1px solid var(--gris-borde);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .item strong {
+      color: var(--azul1);
+      display: block;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .item span {
+      color: var(--gris-muted);
+      font-size: 0.9rem;
+    }
+
+    .carrera-form {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(160px, 0.5fr) auto auto;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 18px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 12px;
+      background: #f8fafc;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--gris-texto);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    input {
+      width: 100%;
+      min-height: 42px;
+      padding: 9px 11px;
+      border: 1px solid var(--gris-borde);
+      border-radius: 6px;
+      background: white;
+      color: var(--gris-texto);
+      font: inherit;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 9px 14px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--azul1);
+      color: white;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #e2e8f0;
+      color: var(--gris-texto);
+    }
+
+    #message {
+      min-height: 24px;
+      margin: 10px 2px;
+      color: var(--danger);
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--gris-borde);
+      text-align: left;
+    }
+
+    th {
+      background: var(--azul3);
+      color: var(--azul1);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+    }
+
+    td.actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    td.actions button {
+      min-height: 34px;
+      padding: 6px 10px;
+      font-size: 0.85rem;
+    }
+
+    td.actions .delete {
+      background: var(--danger);
+    }
+
+    @media (max-width: 720px) {
+      .carrera-form {
+        grid-template-columns: 1fr;
+      }
+
+      h2 {
+        font-size: 1.6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="brand">Universidad del Tolima</div>
+        <h2>Carreras y facultades</h2>
+      </div>
+      <a class="back" href="menu.html">Volver al panel</a>
+    </div>
+
+    <form id="carreraForm" class="carrera-form">
+      <label for="nombreCarrera">Nombre de la carrera
+        <input id="nombreCarrera" name="nombre" type="text" maxlength="100" required />
+      </label>
+      <label for="idFacultad">ID de facultad
+        <input id="idFacultad" name="idFacultad" type="number" min="1" step="1" required />
+      </label>
+      <button id="guardarCarrera" type="submit">Registrar</button>
+      <button id="cancelarEdicion" class="secondary" type="button" hidden>Cancelar</button>
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Carrera</th>
+            <th>ID Facultad</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tablaCarreras"></tbody>
+      </table>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>
