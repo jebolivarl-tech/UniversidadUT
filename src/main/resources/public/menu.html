@@ -10,10 +10,21 @@
   <main class="desktop" aria-labelledby="menu-title">
     <section class="menu-window">
       <h1 id="menu-title">PANEL DE CONTROL ACADÉMICO</h1>
+      <p class="usuario" id="usuario"></p>
 
       <nav class="module-actions" aria-label="Módulos académicos">
+        <a class="module-button" href="mi.html" data-roles="ADMINISTRATIVO,PROFESOR,ESTUDIANTE" hidden>Mi información</a>
         <a class="module-button" href="estudiantes.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Gestión de Estudiantes</a>
-        <a class="module-button" href="carreras.html" data-roles="ADMINISTRATIVO" hidden>Gestión de Carreras</a>
+        <a class="module-button" href="carreras.html" data-roles="ADMINISTRATIVO" hidden>Carreras</a>
+        <a class="module-button" href="facultades.html" data-roles="ADMINISTRATIVO" hidden>Facultades</a>
+        <a class="module-button" href="profesores.html" data-roles="ADMINISTRATIVO" hidden>Profesores</a>
+        <a class="module-button" href="periodos.html" data-roles="ADMINISTRATIVO" hidden>Periodos académicos</a>
+        <a class="module-button" href="cursos.html" data-roles="ADMINISTRATIVO" hidden>Cursos</a>
+        <a class="module-button" href="secciones.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Secciones</a>
+        <a class="module-button" href="matriculas.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Matrículas</a>
+        <a class="module-button" href="asistencias.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Asistencias</a>
+        <a class="module-button" href="calificaciones.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Calificaciones</a>
+        <a class="module-button" href="usuarios.html" data-roles="ADMINISTRATIVO" hidden>Cuentas de acceso</a>
       </nav>
 
       <form id="logoutForm" class="logout-form">

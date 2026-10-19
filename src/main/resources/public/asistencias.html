@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asistencias - Universidad</title>
+  <link rel="stylesheet" href="modulos.css" />
+</head>
+<body data-modulo="asistencias">
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="brand">Universidad del Tolima</div>
+        <h2 id="titulo">Asistencias</h2>
+      </div>
+      <a class="back" href="menu.html">Volver al panel</a>
+    </div>
+
+    <p class="ayuda" id="ayuda"></p>
+    <div class="filtros" id="filtros" hidden></div>
+
+    <form class="formulario" id="formulario">
+      <div class="campos" id="campos"></div>
+      <div class="botones">
+        <button id="guardar" type="submit">Registrar</button>
+        <button id="cancelar" class="secondary" type="button" hidden>Cancelar</button>
+      </div>
+    </form>
+
+    <div id="message" role="status" aria-live="polite"></div>
+    <p class="contador" id="contador"></p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr id="encabezados"></tr>
+        </thead>
+        <tbody id="tabla"></tbody>
+      </table>
+      <p id="vacio" hidden>No hay registros para mostrar.</p>
+    </div>
+  </div>
+  <script src="script.js"></script>
+  <script src="modulos.js"></script>
+</body>
+</html>

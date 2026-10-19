@@ -120,7 +120,7 @@ public class LoginForm extends JFrame {
                     }
 
                     FlatDarkLaf.setup();
-                    MenuPrincipal menu = new MenuPrincipal();
+                    MenuPrincipal menu = new MenuPrincipal(usuario);
                     menu.setLocationRelativeTo(null);
                     menu.setVisible(true);
                     dispose();

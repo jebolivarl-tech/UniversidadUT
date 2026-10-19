@@ -608,7 +608,9 @@ async function aplicarPermisosDelMenu() {
       window.location.href = 'login.html';
       return;
     }
-    const { rol } = await response.json();
+    const { rol, username } = await response.json();
+    const usuario = document.getElementById('usuario');
+    if (usuario) usuario.textContent = `${username} · ${rol}`;
     enlaces.forEach((enlace) => {
       enlace.hidden = !enlace.dataset.roles.split(',').includes(rol);
     });

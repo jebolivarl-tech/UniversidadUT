@@ -1,4 +1,4 @@
-# Despliegue completo en un VPS: app + MySQL. Uso:  cp .env.example .env  (editar)  y luego  docker compose up -d --build
+# App + MySQL en su propio equipo. Uso:  cp .env.example .env  (editar)  y luego  docker compose up -d --build
 services:
   db:
     image: mysql:8.0
@@ -28,8 +28,8 @@ services:
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       CORS_ORIGINS: ${CORS_ORIGINS:-}
-      COOKIE_SECURE: "true"   # requiere HTTPS delante (proxy/hosting). Use "false" solo para probar por http.
-      TRUST_PROXY: "true"
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}   # "true" solo si hay HTTPS delante
+      TRUST_PROXY: ${TRUST_PROXY:-false}
     ports:
       - "8080:8080"
 

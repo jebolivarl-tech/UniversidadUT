@@ -32,21 +32,16 @@ body {
 }
 
 .menu-window {
-  position: relative;
-  width: min(500px, 100%);
-  min-height: 400px;
-  overflow: hidden;
+  width: min(620px, 100%);
   border: 1px solid var(--window-border);
+  border-radius: 4px;
   background: var(--window);
   box-shadow: 0 18px 50px rgb(0 0 0 / 28%);
+  padding: 26px 22px 24px;
 }
 
 h1 {
-  position: absolute;
-  top: 39px;
-  right: 20px;
-  left: 20px;
-  margin: 0;
+  margin: 0 0 6px;
   color: var(--text);
   font-size: 18px;
   font-weight: 700;
@@ -54,19 +49,24 @@ h1 {
   text-align: center;
 }
 
+.usuario {
+  margin: 0 0 22px;
+  color: #b9bec2;
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .module-actions {
-  position: absolute;
-  top: 120px;
-  left: 50%;
-  width: min(280px, calc(100% - 40px));
   display: grid;
-  gap: 40px;
-  transform: translateX(-50%);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 .module-button,
 .logout-button {
-  min-height: 50px;
+  min-height: 48px;
   display: grid;
   place-items: center;
   border: 1px solid var(--button-border);
@@ -74,6 +74,7 @@ h1 {
   background: var(--button);
   color: var(--text);
   font-size: 14px;
+  padding: 0 10px;
   text-align: center;
   text-decoration: none;
   transition: background-color 140ms ease, border-color 140ms ease;
@@ -89,18 +90,13 @@ h1 {
 }
 
 .logout-form {
-  position: absolute;
-  top: 300px;
-  left: 50%;
-  width: min(200px, calc(100% - 40px));
-  margin: 0;
-  transform: translateX(-50%);
+  width: min(220px, 100%);
+  margin: 22px auto 0;
 }
 
 .logout-button {
   width: 100%;
   min-height: 42px;
-  padding: 0 12px;
   color: var(--text);
   border-color: var(--button-border);
   background: var(--button);
@@ -124,22 +120,15 @@ h1 {
   }
 
   .menu-window {
-    min-height: 380px;
+    padding: 20px 14px;
   }
 
   h1 {
-    right: 12px;
-    left: 12px;
     font-size: 16px;
   }
 
   .module-actions {
-    top: 116px;
-    gap: 36px;
-  }
-
-  .logout-form {
-    top: 288px;
+    grid-template-columns: 1fr;
   }
 }
 

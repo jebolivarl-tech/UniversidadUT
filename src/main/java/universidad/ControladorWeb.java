@@ -14,7 +14,9 @@ import universidad.dao.UsuarioDAOImpl;
 import universidad.web.ApiException;
 import universidad.web.AuthController;
 import universidad.web.CarreraController;
+import universidad.web.CuentaController;
 import universidad.web.EstudianteController;
+import universidad.web.ModulosCrud;
 import universidad.web.Recursos;
 import universidad.web.Sesion;
 
@@ -31,15 +33,17 @@ public class ControladorWeb {
     public static void main(String[] args) {
         List<String> origenesPermitidos = leerOrigenesCors();
 
-        Javalin app = Javalin.create(config ->
-                config.jetty.modifyServletContextHandler(handler -> {
-                    SessionHandler sesiones = new SessionHandler();
-                    sesiones.setHttpOnly(true);
-                    sesiones.setSameSite(HttpCookie.SameSite.LAX);
-                    sesiones.setMaxInactiveInterval(SESION_INACTIVIDAD_SEGUNDOS);
-                    sesiones.getSessionCookieConfig().setSecure("true".equalsIgnoreCase(System.getenv("COOKIE_SECURE")));
-                    handler.setSessionHandler(sesiones);
-                }));
+        Javalin app = Javalin.create(config -> {
+            config.jsonMapper(new universidad.web.MapeadorJson());
+            config.jetty.modifyServletContextHandler(handler -> {
+                SessionHandler sesiones = new SessionHandler();
+                sesiones.setHttpOnly(true);
+                sesiones.setSameSite(HttpCookie.SameSite.LAX);
+                sesiones.setMaxInactiveInterval(SESION_INACTIVIDAD_SEGUNDOS);
+                sesiones.getSessionCookieConfig().setSecure("true".equalsIgnoreCase(System.getenv("COOKIE_SECURE")));
+                handler.setSessionHandler(sesiones);
+            });
+        });
 
         app.before(ctx -> aplicarCabecerasDeSeguridad(ctx, origenesPermitidos));
         app.options("/*", ctx -> {
@@ -52,9 +56,15 @@ public class ControladorWeb {
         registrarManejoDeErrores(app);
         registrarPaginas(app);
 
-        new AuthController(new UsuarioDAOImpl()).registrar(app);
+        var usuarios = new UsuarioDAOImpl();
+        new AuthController(usuarios).registrar(app);
         new EstudianteController(new EstudianteDAOImpl()).registrar(app);
         new CarreraController(new CarreraDAOImpl()).registrar(app);
+        new CuentaController(usuarios).registrar(app);
+
+        ModulosCrud modulos = new ModulosCrud();
+        modulos.registrar(app);
+        modulos.controladorMiInformacion().registrar(app);
 
         int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
         Runtime.getRuntime().addShutdownHook(new Thread(universidad.conexion.Conexion::cerrar));
@@ -66,10 +76,25 @@ public class ControladorWeb {
         app.get("/", ctx -> ctx.redirect("/login.html"));
         app.get("/login.html", ctx -> ctx.html(Recursos.leer("public/login.html")));
         app.get("/menu.css", ctx -> ctx.contentType("text/css").result(Recursos.leer("public/menu.css")));
+        app.get("/modulos.css", ctx -> ctx.contentType("text/css").result(Recursos.leer("public/modulos.css")));
         app.get("/script.js", ctx -> ctx.contentType("application/javascript").result(Recursos.leer("public/script.js")));
+        app.get("/modulos.js", ctx -> ctx.contentType("application/javascript").result(Recursos.leer("public/modulos.js")));
+
         app.get("/menu.html", ctx -> servirPaginaPrivada(ctx, "public/menu.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR, Sesion.ESTUDIANTE));
+        app.get("/mi.html", ctx -> servirPaginaPrivada(ctx, "public/mi.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR, Sesion.ESTUDIANTE));
+
         app.get("/estudiantes.html", ctx -> servirPaginaPrivada(ctx, "public/estudiantes.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR));
         app.get("/carreras.html", ctx -> servirPaginaPrivada(ctx, "public/carreras.html", Sesion.ADMINISTRATIVO));
+        app.get("/facultades.html", ctx -> servirPaginaPrivada(ctx, "public/facultades.html", Sesion.ADMINISTRATIVO));
+        app.get("/profesores.html", ctx -> servirPaginaPrivada(ctx, "public/profesores.html", Sesion.ADMINISTRATIVO));
+        app.get("/periodos.html", ctx -> servirPaginaPrivada(ctx, "public/periodos.html", Sesion.ADMINISTRATIVO));
+        app.get("/cursos.html", ctx -> servirPaginaPrivada(ctx, "public/cursos.html", Sesion.ADMINISTRATIVO));
+        app.get("/usuarios.html", ctx -> servirPaginaPrivada(ctx, "public/usuarios.html", Sesion.ADMINISTRATIVO));
+
+        app.get("/secciones.html", ctx -> servirPaginaPrivada(ctx, "public/secciones.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR));
+        app.get("/matriculas.html", ctx -> servirPaginaPrivada(ctx, "public/matriculas.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR));
+        app.get("/asistencias.html", ctx -> servirPaginaPrivada(ctx, "public/asistencias.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR));
+        app.get("/calificaciones.html", ctx -> servirPaginaPrivada(ctx, "public/calificaciones.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR));
     }
 
     private static void registrarManejoDeErrores(Javalin app) {

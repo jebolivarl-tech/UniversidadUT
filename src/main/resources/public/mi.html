@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi información - Universidad</title>
+  <link rel="stylesheet" href="modulos.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="brand">Universidad del Tolima</div>
+        <h2>Mi información</h2>
+      </div>
+      <a class="back" href="menu.html">Volver al panel</a>
+    </div>
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <section class="tarjetas" id="resumen" aria-label="Resumen"></section>
+
+    <section id="secciones">
+      <h3 id="tituloSecciones">Mis secciones</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="encabezadosSecciones"></tr></thead>
+          <tbody id="tablaSecciones"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="notas">
+      <h3 id="tituloNotas">Mis calificaciones</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="encabezadosNotas"></tr></thead>
+          <tbody id="tablaNotas"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="asistencias">
+      <h3 id="tituloAsistencias">Mis asistencias</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="encabezadosAsistencias"></tr></thead>
+          <tbody id="tablaAsistencias"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="matriculas" hidden>
+      <h3>Mis matrículas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr id="encabezadosMatriculas"></tr></thead>
+          <tbody id="tablaMatriculas"></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    const ETIQUETAS = {
+      username: 'Usuario', rol: 'Rol', estudiante: 'Estudiante', email: 'Correo',
+      carrera: 'Carrera', facultad: 'Facultad', profesor: 'Profesor',
+      materiasCalificadas: 'Materias calificadas', materiasAprobadas: 'Materias aprobadas',
+      promedioGeneral: 'Promedio general', controles: 'Controles registrados',
+      porcentajeAsistencia: '% de asistencia', secciones: 'Secciones a mi cargo',
+    };
+
+    async function leerJson(ruta) {
+      const response = await fetch(`${API_BASE_URL}${ruta}`, { credentials: 'include' });
+      if (!response.ok) {
+        if (response.status === 403) return null;
+        throw new Error(await responseError(response));
+      }
+      return response.json();
+    }
+
+    function pintarResumen(perfil) {
+      const contenedor = document.getElementById('resumen');
+      contenedor.textContent = '';
+      for (const [clave, valor] of Object.entries(perfil)) {
+        if (Array.isArray(valor)) continue;
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta';
+        const numero = document.createElement('strong');
+        numero.textContent = valor === null || valor === undefined || valor === '' ? '—' : String(valor);
+        const titulo = document.createElement('span');
+        titulo.textContent = ETIQUETAS[clave] || clave;
+        tarjeta.append(numero, titulo);
+        contenedor.appendChild(tarjeta);
+      }
+    }
+
+    function pintarTabla(prefijo, filas, columnas) {
+      const cabecera = document.getElementById(`encabezados${prefijo}`);
+      const cuerpo = document.getElementById(`tabla${prefijo}`);
+      cabecera.textContent = '';
+      cuerpo.textContent = '';
+      for (const columna of columnas) {
+        const th = document.createElement('th');
+        th.textContent = columna;
+        cabecera.appendChild(th);
+      }
+      if (!filas || filas.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = columnas.length;
+        td.textContent = 'Sin registros.';
+        tr.appendChild(td);
+        cuerpo.appendChild(tr);
+        return;
+      }
+      for (const fila of filas) {
+        const tr = document.createElement('tr');
+        const planas = {};
+        for (const clave of Object.keys(fila)) planas[clave.toLowerCase()] = fila[clave];
+        for (const columna of columnas) {
+          const td = document.createElement('td');
+          const valor = planas[columna.clave];
+          td.textContent = columna.formato === 'fecha' ? formatDateForDisplay(valor) : (valor ?? '');
+          tr.appendChild(td);
+        }
+        cuerpo.appendChild(tr);
+      }
+    }
+
+    async function iniciar() {
+      let perfil;
+      try {
+        perfil = await leerJson('/api/mi');
+      } catch (error) {
+        showMessage(error.message, true);
+        return;
+      }
+      if (!perfil) return;
+      pintarResumen(perfil);
+
+      if (perfil.rol === 'ADMINISTRATIVO') {
+        for (const id of ['secciones', 'notas', 'asistencias', 'matriculas']) {
+          document.getElementById(id).hidden = true;
+        }
+        showMessage('En su rol los datos se consultan por módulo desde el panel.', false);
+        return;
+      }
+
+      const esEstudiante = perfil.rol === 'ESTUDIANTE';
+      const secciones = await leerJson('/api/mi/secciones');
+      pintarTabla('Secciones', secciones, [
+        { clave: 'curso' }, { clave: 'profesor' }, { clave: 'periodo' }, { clave: 'aula' }, { clave: 'cupomaximo' },
+      ]);
+
+      const notas = await leerJson('/api/mi/calificaciones');
+      if (esEstudiante) document.getElementById('tituloNotas').textContent = 'Mis calificaciones';
+      else document.getElementById('tituloNotas').textContent = 'Calificaciones de mis secciones';
+      pintarTabla('Notas', notas, [
+        { clave: 'curso' }, { clave: 'notaparcial1' }, { clave: 'notaparcial2' },
+        { clave: 'notaexamenfinal' }, { clave: 'promediofinal' }, { clave: 'estado' },
+      ]);
+
+      const asistencias = await leerJson('/api/mi/asistencias');
+      if (!esEstudiante) {
+        document.getElementById('tituloAsistencias').textContent = 'Controles de asistencia de mis secciones';
+      }
+      pintarTabla('Asistencias', asistencias, [
+        { clave: 'curso' }, { clave: 'fecha', formato: 'fecha' }, { clave: 'estado' },
+      ]);
+
+      if (esEstudiante) {
+        document.getElementById('matriculas').hidden = false;
+        const matriculas = await leerJson('/api/mi/matriculas');
+        pintarTabla('Matriculas', matriculas, [
+          { clave: 'curso' }, { clave: 'creditos' }, { clave: 'periodo' }, { clave: 'nota' },
+        ]);
+      }
+    }
+
+    iniciar();
+  </script>
+</body>
+</html>

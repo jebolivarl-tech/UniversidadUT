@@ -15,7 +15,7 @@ public class CarreraController {
 
     public void registrar(Javalin app) {
         app.get("/api/carreras", ctx -> {
-            Sesion.requerirAutenticacion(ctx);
+            Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO, Sesion.PROFESOR);
             ctx.json(dao.listarTodos());
         });
 

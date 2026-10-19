@@ -1,20 +1,30 @@
 @echo off
+setlocal
 cd /d "%~dp0"
 
-REM Configure estas variables ANTES de ejecutar (no guarde contrasenas reales en este archivo):
-REM   set DB_USER=su_usuario
-REM   set DB_PASSWORD=su_contrasena
-REM   set DB_URL=jdbc:mysql://localhost:3306/universidad   (opcional)
-if "%DB_USER%"=="" (
-  echo Falta la variable DB_USER. Ejecute: set DB_USER=su_usuario
-  exit /b 1
-)
-if "%DB_PASSWORD%"=="" (
-  echo Falta la variable DB_PASSWORD. Ejecute: set DB_PASSWORD=su_contrasena
-  exit /b 1
+REM Arranca la interfaz web en http://localhost:8080 usando el MySQL de este equipo.
+REM Credenciales: src/main/resources/application-local.properties (ver application-local.properties.example)
+REM o variables de entorno DB_USER y DB_PASSWORD, que tienen prioridad.
+
+if exist "src\main\resources\application-local.properties" goto ejecutar
+if exist "application-local.properties" goto ejecutar
+if defined DB_USER if defined DB_PASSWORD goto ejecutar
+
+echo No se encontro la configuracion de la base de datos.
+echo Cree src\main\resources\application-local.properties a partir de
+echo application-local.properties.example, o defina las variables de entorno:
+echo     set DB_USER=su_usuario
+echo     set DB_PASSWORD=su_contrasena
+exit /b 1
+
+:ejecutar
+if not exist "target\app.jar" (
+  echo Construyendo target\app.jar ...
+  call mvn -B clean package -DskipTests || exit /b 1
 )
 
 echo =====================================================
 echo Iniciando UniversidadDao en http://localhost:8080
 echo =====================================================
-mvn exec:java
+java -jar target\app.jar
+endlocal

@@ -43,6 +43,17 @@ public final class Http {
         return ex.getSQLState() != null && ex.getSQLState().startsWith("23");
     }
 
+    /** 1062: valor duplicado para una clave única. */
+    public static boolean esDuplicado(SQLException ex) {
+        return ex.getErrorCode() == 1062;
+    }
+
+    /** 1452/1586: la fila referencia un id que no existe (clave foránea). */
+    public static boolean esReferenciaInexistente(SQLException ex) {
+        int code = ex.getErrorCode();
+        return code == 1452 || code == 1586;
+    }
+
     /** IP del cliente. Solo confía en X-Forwarded-For si TRUST_PROXY=true (detrás de un proxy inverso propio). */
     public static String ipCliente(Context ctx) {
         if ("true".equalsIgnoreCase(System.getenv("TRUST_PROXY"))) {
@@ -52,5 +63,35 @@ public final class Http {
             }
         }
         return ctx.ip();
+    }
+
+    /** Entero de la query string; null si no viene. 400 si no es un entero positivo. */
+    public static Integer enteroQuery(Context ctx, String nombre) {
+        String valor = ctx.queryParam(nombre);
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        try {
+            int numero = Integer.parseInt(valor.trim());
+            if (numero < 1) {
+                throw new NumberFormatException();
+            }
+            return numero;
+        } catch (NumberFormatException ex) {
+            throw new ApiException(400, "El parámetro " + nombre + " no es válido.");
+        }
+    }
+
+    /** Fecha ISO (yyyy-MM-dd) de la query string; null si no viene. */
+    public static java.sql.Date fechaQuery(Context ctx, String nombre) {
+        String valor = ctx.queryParam(nombre);
+        if (valor == null || valor.isBlank()) {
+            return null;
+        }
+        try {
+            return java.sql.Date.valueOf(valor.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new ApiException(400, "El parámetro " + nombre + " debe ser una fecha AAAA-MM-DD.");
+        }
     }
 }
