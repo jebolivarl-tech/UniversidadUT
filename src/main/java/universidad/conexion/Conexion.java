@@ -4,6 +4,9 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -70,13 +73,16 @@ public final class Conexion {
         Path enDisco = Path.of("application-local.properties");
         try {
             if (Files.isRegularFile(enDisco)) {
-                try (InputStream in = Files.newInputStream(enDisco)) {
+                try (Reader in = Files.newBufferedReader(enDisco, StandardCharsets.UTF_8)) {
                     props.load(in);
                 }
             } else {
                 try (InputStream in = Conexion.class.getClassLoader().getResourceAsStream("application-local.properties")) {
                     if (in != null) {
-                        props.load(in);
+                        // Properties.load(InputStream) decodifica ISO-8859-1; el Reader deja claro que es UTF-8.
+                        try (Reader lector = new InputStreamReader(in, StandardCharsets.UTF_8)) {
+                            props.load(lector);
+                        }
                     }
                 }
             }

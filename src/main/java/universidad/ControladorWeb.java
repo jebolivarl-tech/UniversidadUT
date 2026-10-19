@@ -46,6 +46,7 @@ public class ControladorWeb {
         });
 
         app.before(ctx -> aplicarCabecerasDeSeguridad(ctx, origenesPermitidos));
+        app.after(ctx -> declararUtf8(ctx));
         app.options("/*", ctx -> {
             if (!esOrigenPermitido(ctx.header("Origin"), origenesPermitidos)) {
                 throw new ApiException(403, "Origen no permitido.");
@@ -75,10 +76,13 @@ public class ControladorWeb {
     private static void registrarPaginas(Javalin app) {
         app.get("/", ctx -> ctx.redirect("/login.html"));
         app.get("/login.html", ctx -> ctx.html(Recursos.leer("public/login.html")));
-        app.get("/menu.css", ctx -> ctx.contentType("text/css").result(Recursos.leer("public/menu.css")));
-        app.get("/modulos.css", ctx -> ctx.contentType("text/css").result(Recursos.leer("public/modulos.css")));
-        app.get("/script.js", ctx -> ctx.contentType("application/javascript").result(Recursos.leer("public/script.js")));
-        app.get("/modulos.js", ctx -> ctx.contentType("application/javascript").result(Recursos.leer("public/modulos.js")));
+        app.get("/marca.css", ctx -> servirTexto(ctx, "text/css", "public/marca.css"));
+        app.get("/menu.css", ctx -> servirTexto(ctx, "text/css", "public/menu.css"));
+        app.get("/modulos.css", ctx -> servirTexto(ctx, "text/css", "public/modulos.css"));
+        app.get("/script.js", ctx -> servirTexto(ctx, "application/javascript", "public/script.js"));
+        app.get("/modulos.js", ctx -> servirTexto(ctx, "application/javascript", "public/modulos.js"));
+        app.get("/logo-ut.png", ctx -> servirBinario(ctx, "image/png", "public/logo-ut.png"));
+        app.get("/logo-marca-ut.png", ctx -> servirBinario(ctx, "image/png", "public/logo-marca-ut.png"));
 
         app.get("/menu.html", ctx -> servirPaginaPrivada(ctx, "public/menu.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR, Sesion.ESTUDIANTE));
         app.get("/mi.html", ctx -> servirPaginaPrivada(ctx, "public/mi.html", Sesion.ADMINISTRATIVO, Sesion.PROFESOR, Sesion.ESTUDIANTE));
@@ -113,6 +117,18 @@ public class ControladorWeb {
         });
     }
 
+    /**
+     * Sirve un recurso de texto del JAR. El charset va declarado ANTES de result(): Javalin convierte el
+     * String con el charset de la respuesta, y si no está definido Jetty usa ISO-8859-1 y rompe tildes y eñes.
+     */
+    private static void servirTexto(Context ctx, String tipo, String recurso) {
+        ctx.contentType(tipo + "; charset=utf-8").result(Recursos.leer(recurso));
+    }
+
+    private static void servirBinario(Context ctx, String tipo, String recurso) {
+        ctx.contentType(tipo).result(Recursos.leerBytes(recurso));
+    }
+
     static void servirPaginaPrivada(Context ctx, String recurso, String... roles) {
         if (!Sesion.estaAutenticado(ctx)) {
             ctx.redirect("/login.html");
@@ -123,6 +139,25 @@ public class ControladorWeb {
             return;
         }
         ctx.html(Recursos.leer(recurso));
+    }
+
+    /**
+     * Declara UTF-8 en todo cuerpo de texto. Los recursos se leen del JAR con StandardCharsets.UTF_8, pero
+     * Javalin emite "text/html" o "application/json" sin charset; sin esta cabecera el navegador puede
+     * asumir la página de código del sistema operativo y romper tildes y eñes.
+     * Se lee la respuesta y no ctx.contentType() porque ese getter devuelve el Content-Type de la petición.
+     */
+    static void declararUtf8(Context ctx) {
+        String tipo = ctx.res().getContentType();
+        if (tipo == null) {
+            return;
+        }
+        String base = tipo.toLowerCase();
+        boolean esTexto = base.startsWith("text/") || base.startsWith("application/json")
+                || base.startsWith("application/javascript");
+        if (esTexto && !base.contains("charset")) {
+            ctx.contentType(tipo + "; charset=utf-8");
+        }
     }
 
     private static void aplicarCabecerasDeSeguridad(Context ctx, List<String> origenesPermitidos) {

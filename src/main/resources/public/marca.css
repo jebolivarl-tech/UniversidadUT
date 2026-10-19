@@ -1,0 +1,225 @@
+@charset "UTF-8";
+/* Sistema de diseño institucional: tonos, logo, botones y acento por módulo. */
+:root {
+  color-scheme: light;
+
+  --verde-900: #06402e;
+  --verde-700: #0b6e4f;
+  --verde-500: #12855f;
+  --verde-100: #e2f1ea;
+  --oro-700: #a16207;
+  --oro-500: #f0b429;
+  --oro-100: #fdf3d8;
+  --neutro-fondo: #f4f7f4;
+  --neutro-panel: #ffffff;
+  --neutro-borde: #dfe7e0;
+  --neutro-tinta: #14231d;
+  --neutro-muted: #5d6f66;
+  --peligro: #b42318;
+  --exito: #15803d;
+
+  --acento: var(--verde-700);
+  --acento-suave: var(--verde-100);
+
+  --radio-s: 8px;
+  --radio-m: 14px;
+  --radio-l: 20px;
+  --sombra-s: 0 1px 2px rgb(20 35 29 / 6%), 0 2px 6px rgb(20 35 29 / 5%);
+  --sombra-m: 0 6px 16px rgb(20 35 29 / 9%), 0 2px 4px rgb(20 35 29 / 6%);
+  --sombra-l: 0 18px 38px rgb(6 64 46 / 16%), 0 4px 10px rgb(6 64 46 / 8%);
+  --salto: cubic-bezier(0.22, 0.68, 0.36, 1);
+
+  --mi: #0b6e4f;         --mi-suave: #e2f1ea;
+  --estudiantes: #0f766e; --estudiantes-suave: #dcefef;
+  --carreras: #a16207;    --carreras-suave: #faf0d7;
+  --facultades: #14532d;  --facultades-suave: #e3efe6;
+  --profesores: #047857;  --profesores-suave: #d7f2e6;
+  --periodos: #0e7490;    --periodos-suave: #dbeff6;
+  --cursos: #4d7c0f;      --cursos-suave: #eef5dd;
+  --secciones: #166534;   --secciones-suave: #e0f0e3;
+  --matriculas: #b45309;  --matriculas-suave: #fbeedd;
+  --asistencias: #3f6212; --asistencias-suave: #eaf3d9;
+  --calificaciones: #65800b; --calificaciones-suave: #f3f7dc;
+  --usuarios: #854d0e;    --usuarios-suave: #f7ecd8;
+}
+
+body {
+  margin: 0;
+  background: var(--neutro-fondo);
+  color: var(--neutro-tinta);
+  font-family: "Segoe UI", system-ui, -apple-system, Tahoma, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+* { box-sizing: border-box; }
+
+/* ---------- marca institucional ---------- */
+
+.marca-institucional {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo-ut {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  padding: 5px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: var(--neutro-panel);
+  box-shadow: var(--sombra-s);
+  transition: transform 0.25s var(--salto), box-shadow 0.25s var(--salto);
+}
+
+.marca-institucional:hover .logo-ut {
+  transform: scale(1.05);
+  box-shadow: var(--sombra-m);
+}
+
+.marca-texto {
+  display: grid;
+  gap: 1px;
+  line-height: 1.25;
+}
+
+.marca-texto strong {
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.marca-texto small {
+  font-size: 0.72rem;
+  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  color: var(--neutro-muted);
+}
+
+/* ---------- botones ---------- */
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radio-m);
+  background: var(--verde-700);
+  color: #fff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: var(--sombra-s);
+  transition: transform 0.2s var(--salto), box-shadow 0.2s var(--salto),
+    background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.boton:hover {
+  background: var(--verde-900);
+  box-shadow: var(--sombra-m);
+  transform: translateY(-1px);
+}
+
+.boton:active {
+  background: var(--verde-500);
+  box-shadow: var(--sombra-s);
+  transform: translateY(1px) scale(0.99);
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.boton-suave {
+  background: var(--neutro-panel);
+  color: var(--verde-900);
+  border-color: var(--neutro-borde);
+}
+
+.boton-suave:hover {
+  background: var(--verde-100);
+  border-color: var(--verde-500);
+  color: var(--verde-900);
+}
+
+.boton-oro {
+  background: var(--oro-500);
+  color: var(--verde-900);
+}
+
+.boton-oro:hover { background: var(--oro-700); color: #fff; }
+
+.boton-peligro { background: var(--peligro); }
+.boton-peligro:hover { background: #7f1d14; }
+
+:focus-visible {
+  outline: 3px solid var(--oro-500);
+  outline-offset: 2px;
+  border-radius: var(--radio-s);
+}
+
+/* ---------- acento por modulo (tarjetas del panel y paginas) ---------- */
+
+.marco-acento {
+  background: var(--acento);
+}
+
+body[data-modulo="mi"] { --acento: var(--mi); --acento-suave: var(--mi-suave); }
+body[data-modulo="estudiantes"] { --acento: var(--estudiantes); --acento-suave: var(--estudiantes-suave); }
+body[data-modulo="carreras"] { --acento: var(--carreras); --acento-suave: var(--carreras-suave); }
+body[data-modulo="facultades"] { --acento: var(--facultades); --acento-suave: var(--facultades-suave); }
+body[data-modulo="profesores"] { --acento: var(--profesores); --acento-suave: var(--profesores-suave); }
+body[data-modulo="periodos"] { --acento: var(--periodos); --acento-suave: var(--periodos-suave); }
+body[data-modulo="cursos"] { --acento: var(--cursos); --acento-suave: var(--cursos-suave); }
+body[data-modulo="secciones"] { --acento: var(--secciones); --acento-suave: var(--secciones-suave); }
+body[data-modulo="matriculas"] { --acento: var(--matriculas); --acento-suave: var(--matriculas-suave); }
+body[data-modulo="asistencias"] { --acento: var(--asistencias); --acento-suave: var(--asistencias-suave); }
+body[data-modulo="calificaciones"] { --acento: var(--calificaciones); --acento-suave: var(--calificaciones-suave); }
+body[data-modulo="usuarios"] { --acento: var(--usuarios); --acento-suave: var(--usuarios-suave); }
+
+.modulo--mi { --acento: var(--mi); --acento-suave: var(--mi-suave); }
+.modulo--estudiantes { --acento: var(--estudiantes); --acento-suave: var(--estudiantes-suave); }
+.modulo--carreras { --acento: var(--carreras); --acento-suave: var(--carreras-suave); }
+.modulo--facultades { --acento: var(--facultades); --acento-suave: var(--facultades-suave); }
+.modulo--profesores { --acento: var(--profesores); --acento-suave: var(--profesores-suave); }
+.modulo--periodos { --acento: var(--periodos); --acento-suave: var(--periodos-suave); }
+.modulo--cursos { --acento: var(--cursos); --acento-suave: var(--cursos-suave); }
+.modulo--secciones { --acento: var(--secciones); --acento-suave: var(--secciones-suave); }
+.modulo--matriculas { --acento: var(--matriculas); --acento-suave: var(--matriculas-suave); }
+.modulo--asistencias { --acento: var(--asistencias); --acento-suave: var(--asistencias-suave); }
+.modulo--calificaciones { --acento: var(--calificaciones); --acento-suave: var(--calificaciones-suave); }
+.modulo--usuarios { --acento: var(--usuarios); --acento-suave: var(--usuarios-suave); }
+
+.icono {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+[hidden] { display: none !important; }

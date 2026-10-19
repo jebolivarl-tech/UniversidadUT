@@ -283,8 +283,6 @@ function seleccionarEstudiante(student) {
   document.getElementById('email').value = student.email ?? '';
   document.getElementById('fechaNacimiento').value = fechaISO(student.fechaNacimiento);
   document.getElementById('idCarrera').value = String(student.idCarrera);
-  document.getElementById('actualizarEstudiante').disabled = false;
-  document.getElementById('eliminarEstudiante').disabled = false;
   renderEstudiantes(estudiantesFiltradosActuales());
 }
 
@@ -311,8 +309,6 @@ function limpiarFormularioEstudiante() {
   estudianteSeleccionado = null;
   document.getElementById('estudianteForm').reset();
   document.getElementById('estudianteId').value = '';
-  document.getElementById('actualizarEstudiante').disabled = true;
-  document.getElementById('eliminarEstudiante').disabled = true;
   renderEstudiantes(estudiantesFiltradosActuales());
 }
 
@@ -328,12 +324,12 @@ function obtenerDatosFormularioEstudiante() {
 
 async function guardarEstudiante(event, actualizar = false) {
   event?.preventDefault();
-  const form = document.getElementById('estudianteForm');
-  if (!form.reportValidity()) return;
   if (actualizar && estudianteSeleccionado === null) {
     showMessage('Seleccione un estudiante de la tabla para actualizar.', true);
     return;
   }
+  const form = document.getElementById('estudianteForm');
+  if (!form.reportValidity()) return;
 
   const estudiante = obtenerDatosFormularioEstudiante();
   if (!Number.isInteger(estudiante.idCarrera) || estudiante.idCarrera < 1) {
@@ -367,7 +363,7 @@ async function guardarEstudiante(event, actualizar = false) {
   } catch (error) {
     showMessage(connectionErrorMessage(error), true);
   } finally {
-    button.disabled = actualizar ? estudianteSeleccionado === null : false;
+    button.disabled = false;
   }
 }
 
@@ -398,7 +394,7 @@ async function eliminarEstudiante() {
   } catch (error) {
     showMessage(connectionErrorMessage(error), true);
   } finally {
-    button.disabled = estudianteSeleccionado === null;
+    button.disabled = false;
   }
 }
 
@@ -613,6 +609,10 @@ async function aplicarPermisosDelMenu() {
     if (usuario) usuario.textContent = `${username} · ${rol}`;
     enlaces.forEach((enlace) => {
       enlace.hidden = !enlace.dataset.roles.split(',').includes(rol);
+    });
+    document.querySelectorAll('.grupo').forEach((grupo) => {
+      const visibles = [...grupo.querySelectorAll('[data-roles]')].filter((enlace) => !enlace.hidden);
+      grupo.hidden = visibles.length === 0;
     });
   } catch (error) {
     showMessage(connectionErrorMessage(error), true);

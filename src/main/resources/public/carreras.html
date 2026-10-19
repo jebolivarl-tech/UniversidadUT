@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carreras - Universidad</title>
+  <meta name="theme-color" content="#0b6e4f" />
+  <link rel="icon" type="image/png" href="logo-marca-ut.png" />
+  <title>Carreras - Universidad del Tolima</title>
+  <link rel="stylesheet" href="marca.css" />
   <style>
     :root {
-      --azul1: #172554;
-      --azul2: #1d4ed8;
-      --azul3: #dbeafe;
+      --azul1: #06402e;
+      --azul2: #0b6e4f;
+      --azul3: #e2f1ea;
       --gris-fondo: #f4f6fa;
       --gris-panel: #ffffff;
       --gris-borde: #dfe6ee;
@@ -136,19 +139,40 @@
 
     button {
       min-height: 42px;
-      padding: 9px 14px;
-      border: 0;
-      border-radius: 6px;
+      padding: 9px 16px;
+      border: 1px solid transparent;
+      border-radius: 12px;
       background: var(--azul1);
       color: white;
       font: inherit;
       font-weight: 700;
       cursor: pointer;
+      box-shadow: var(--sombra-s);
+      transition: transform 0.2s var(--salto), box-shadow 0.2s var(--salto),
+        background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    button:hover {
+      background: var(--azul2);
+      transform: translateY(-1px);
+      box-shadow: var(--sombra-m);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: var(--sombra-s);
     }
 
     button.secondary {
-      background: #e2e8f0;
-      color: var(--gris-texto);
+      background: #ffffff;
+      color: var(--azul1);
+      border-color: var(--gris-borde);
+      box-shadow: none;
+    }
+
+    button.secondary:hover {
+      background: var(--azul3);
+      border-color: var(--azul2);
     }
 
     #message {
@@ -206,15 +230,20 @@
     }
   </style>
 </head>
-<body>
+<body data-modulo="carreras">
   <div class="container">
     <div class="header">
-      <div>
-        <div class="brand">Universidad del Tolima</div>
-        <h2>Carreras y facultades</h2>
-      </div>
-      <a class="back" href="menu.html">Volver al panel</a>
+      <a class="marca-institucional" href="menu.html">
+        <img class="logo-ut" src="logo-marca-ut.png" alt="Marca de la Universidad del Tolima" width="46" height="46" />
+        <span class="marca-texto">
+          <strong>Universidad del Tolima</strong>
+          <small>Sistema Académico</small>
+        </span>
+      </a>
+      <a class="back boton boton-suave" href="menu.html">Volver al panel</a>
     </div>
+
+    <h2>Carreras y facultades</h2>
 
     <form id="carreraForm" class="carrera-form">
       <label for="nombreCarrera">Nombre de la carrera

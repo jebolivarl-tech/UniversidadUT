@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b6e4f" />
+  <link rel="icon" type="image/png" href="logo-marca-ut.png" />
   <title>Gestión de estudiantes</title>
+  <link rel="stylesheet" href="marca.css" />
   <style>
     :root {
-      --azul1: #172554;
-      --azul2: #1d4ed8;
-      --azul3: #e2eafc;
+      --azul1: #06402e;
+      --azul2: #0b6e4f;
+      --azul3: #e2f1ea;
       --gris-fondo: #f4f6fa;
       --gris-panel: #ffffff;
       --gris-borde: #e2e8f0;
@@ -36,6 +39,11 @@
     }
 
     .sidebar {
+      position: sticky;
+      top: 0;
+      align-self: start;
+      max-height: 100vh;
+      overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 8px;
@@ -44,14 +52,14 @@
       background: #fff;
     }
 
-    .brand {
+    .marca-institucional {
       margin: 0 8px 20px;
       color: var(--azul1);
       font-size: 16px;
       font-weight: 700;
     }
 
-    .brand small {
+    .marca-texto small {
       display: block;
       margin-top: 4px;
       color: var(--gris-muted);
@@ -59,14 +67,27 @@
       letter-spacing: 0;
     }
 
+    .nav-modulos { display: grid; gap: 3px; }
+
+    .grupo { display: grid; gap: 3px; margin-top: 12px; }
+
+    .nav-grupo-titulo {
+      margin: 0 12px 3px;
+      color: var(--gris-muted);
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1.1px;
+      text-transform: uppercase;
+    }
+
     .nav-link {
-      min-height: 40px;
+      min-height: 34px;
       display: flex;
       align-items: center;
       padding: 0 12px;
       border-radius: 6px;
       color: var(--gris-texto);
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
       text-decoration: none;
     }
@@ -198,22 +219,37 @@
     }
 
     button {
-      min-height: 36px;
-      padding: 7px 10px;
-      border: none;
-      border-radius: 6px;
+      min-height: 40px;
+      padding: 8px 14px;
+      border: 1px solid transparent;
+      border-radius: 12px;
       background: var(--azul1);
       color: white;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 700;
       cursor: pointer;
+      box-shadow: var(--sombra-s);
+      transition: transform 0.2s var(--salto), box-shadow 0.2s var(--salto),
+        background-color 0.2s ease, border-color 0.2s ease, filter 0.2s ease;
     }
 
-    button:hover { filter: brightness(1.1); }
-    button:disabled { cursor: wait; opacity: 0.65; }
+    button:hover {
+      background: var(--azul2);
+      transform: translateY(-1px);
+      box-shadow: var(--sombra-m);
+    }
+
+    button:active {
+      transform: translateY(1px) scale(0.99);
+      box-shadow: var(--sombra-s);
+    }
+
+    button:disabled { cursor: not-allowed; opacity: 0.55; transform: none; box-shadow: none; }
     button.update { background: var(--naranja); }
     button.delete { background: var(--danger); }
-    button.neutral { background: var(--gris-muted); }
+    button.neutral { background: #ffffff; color: var(--azul1); border-color: var(--gris-borde); box-shadow: none; }
+    button.update:hover, button.delete:hover { filter: brightness(0.88); }
+    button.neutral:hover { background: var(--azul3); border-color: var(--azul2); }
 
     .filters { display: grid; gap: 8px; margin-bottom: 11px; }
     .filter-row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(125px, 0.7fr) auto auto; gap: 6px; }
@@ -258,9 +294,10 @@
 
     @media (max-width: 760px) {
       .app-shell { grid-template-columns: 1fr; }
-      .sidebar { padding: 12px; border-right: 0; border-bottom: 1px solid var(--gris-borde); }
-      .brand { margin-bottom: 4px; }
-      .sidebar nav { display: flex; flex-wrap: wrap; gap: 4px; }
+      .sidebar { position: static; max-height: none; overflow-y: visible; padding: 12px; border-right: 0; border-bottom: 1px solid var(--gris-borde); }
+      .sidebar .nav-modulos { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); display: grid; }
+      .sidebar .grupo { margin-top: 0; display: contents; }
+      .nav-grupo-titulo { display: none; }
       .sidebar-note { display: none; }
       .content { padding: 16px 12px 24px; }
       .topbar { padding: 10px 12px; }
@@ -272,16 +309,55 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
     }
+    .kpi, .nav-link { transition: transform 0.2s var(--salto), box-shadow 0.2s var(--salto), border-color 0.2s ease, background-color 0.2s ease; }
+    .kpi:hover { transform: translateY(-2px); box-shadow: var(--sombra-m); border-color: var(--azul2); }
+    .nav-link:hover { background: var(--azul3); transform: translateX(3px); }
   </style>
 </head>
-<body>
+<body data-modulo="estudiantes">
   <div class="app-shell">
     <aside class="sidebar">
-      <div class="brand">Universidad del Tolima<small>SISTEMA ACADÉMICO</small></div>
-      <nav aria-label="Navegación principal">
-        <a class="nav-link" href="menu.html">Panel de Control</a>
-        <a class="nav-link active" href="estudiantes.html" aria-current="page">Gestión de Estudiantes</a>
-        <a class="nav-link" href="carreras.html">Carreras y Facultades</a>
+      <div class="marca-institucional">
+        <img class="logo-ut" src="logo-marca-ut.png" alt="Marca de la Universidad del Tolima" width="46" height="46" />
+        <span class="marca-texto">
+          <strong>Universidad del Tolima</strong>
+          <small>Sistema Académico</small>
+        </span>
+      </div>
+      <nav class="nav-modulos" aria-label="Navegación principal">
+        <a class="nav-link" href="menu.html">Panel de control</a>
+
+        <section class="grupo">
+          <h2 class="nav-grupo-titulo">Mi expediente</h2>
+          <a class="nav-link" href="mi.html" data-roles="ADMINISTRATIVO,PROFESOR,ESTUDIANTE" hidden>Mi información</a>
+        </section>
+
+        <section class="grupo">
+          <h2 class="nav-grupo-titulo">Personas</h2>
+          <a class="nav-link active" href="estudiantes.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden aria-current="page">Gestión de Estudiantes</a>
+          <a class="nav-link" href="profesores.html" data-roles="ADMINISTRATIVO" hidden>Profesores</a>
+        </section>
+
+        <section class="grupo">
+          <h2 class="nav-grupo-titulo">Oferta académica</h2>
+          <a class="nav-link" href="carreras.html" data-roles="ADMINISTRATIVO" hidden>Carreras</a>
+          <a class="nav-link" href="facultades.html" data-roles="ADMINISTRATIVO" hidden>Facultades</a>
+          <a class="nav-link" href="cursos.html" data-roles="ADMINISTRATIVO" hidden>Cursos</a>
+          <a class="nav-link" href="periodos.html" data-roles="ADMINISTRATIVO" hidden>Periodos académicos</a>
+        </section>
+
+        <section class="grupo">
+          <h2 class="nav-grupo-titulo">Seguimiento académico</h2>
+          <a class="nav-link" href="secciones.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Secciones</a>
+          <a class="nav-link" href="matriculas.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Matrículas</a>
+          <a class="nav-link" href="asistencias.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Asistencias</a>
+          <a class="nav-link" href="calificaciones.html" data-roles="ADMINISTRATIVO,PROFESOR" hidden>Calificaciones</a>
+        </section>
+
+        <section class="grupo">
+          <h2 class="nav-grupo-titulo">Administración</h2>
+          <a class="nav-link" href="usuarios.html" data-roles="ADMINISTRATIVO" hidden>Cuentas de acceso</a>
+        </section>
       </nav>
       <div class="sidebar-note">Base de datos: MySQL</div>
     </aside>
@@ -327,8 +403,8 @@
               </label>
               <div class="button-row">
                 <button type="submit" id="guardarEstudiante">Registrar</button>
-                <button type="button" id="actualizarEstudiante" class="update" disabled>Actualizar</button>
-                <button type="button" id="eliminarEstudiante" class="delete" disabled>Eliminar</button>
+                <button type="button" id="actualizarEstudiante" class="update">Actualizar</button>
+                <button type="button" id="eliminarEstudiante" class="delete">Eliminar</button>
                 <button type="button" id="limpiarEstudiante" class="neutral">Limpiar campos</button>
               </div>
             </form>

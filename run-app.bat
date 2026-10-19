@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
@@ -10,7 +11,7 @@ if exist "src\main\resources\application-local.properties" goto ejecutar
 if exist "application-local.properties" goto ejecutar
 if defined DB_USER if defined DB_PASSWORD goto ejecutar
 
-echo No se encontro la configuracion de la base de datos.
+echo No se encontró la configuración de la base de datos.
 echo Cree src\main\resources\application-local.properties a partir de
 echo application-local.properties.example, o defina las variables de entorno:
 echo     set DB_USER=su_usuario

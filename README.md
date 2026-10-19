@@ -99,6 +99,12 @@ consulta los catálogos y escribe asistencias y calificaciones de sus secciones;
 
 Las páginas y endpoints no autorizados devuelven 403 (o redirigen a `login.html` si no hay sesión).
 
+En el frontend basta con marcar cualquier enlace con `data-roles="ADMINISTRATIVO,PROFESOR"` para que
+`aplicarPermisosDelMenu()` (`script.js`) lo oculte según el rol de la sesión; si el enlace está dentro de un
+contenedor `.grupo`, el grupo entero se oculta cuando queda sin opciones. `menu.html` y la barra lateral de
+`estudiantes.html` usan esa convención con las mismas rutas de la tabla. Ocultar un enlace es solo comodidad:
+el servidor sigue validando cada petición.
+
 ### Calificaciones
 
 Escala institucional de **0.0 a 5.0**; se aprueba con **3.0**. El promedio lo calcula MySQL con una columna
@@ -139,7 +145,34 @@ src/main/java/universidad/
   swing/FormularioCRUD.java                        ventana CRUD genérica
   swing/ModulosSwing.java                          módulos del escritorio y sus permisos
   web/                                             controladores, sesión, validaciones, JSON
-src/main/resources/public/                         HTML, CSS y JS de la interfaz web
+src/main/resources/public/
+  logo-ut.png                                      logo oficial completo (se usa en login)
+  logo-marca-ut.png                                marca "U" recortada (cabeceras y favicon)
+  marca.css                                        tonos institucionales, botones y acento por módulo
+  menu.html, menu.css                              panel de control con las tarjetas de módulos
+  modulos.css, modulos.js, script.js               páginas CRUD y su motor genérico
+  estudiantes.html, carreras.html                  las dos pantallas con maquetado propio
 db/init/01-schema.sql                              esquema completo
 tablas-MySql/                                      volcado de una tabla por archivo
 ```
+
+## 8. Identidad visual
+
+`marca.css` concentra los tonos institucionales (verde `#0b6e4f`, oro `#f0b429` y neutros), los botones y el
+**acento único de cada módulo**: el panel (`menu.html`) lo aplica a la barra lateral, el icono y la sombra de
+su tarjeta, y cada página CRUD lo hereda con `body data-modulo="..."` (título, botones, cabeceras de tabla y
+filas al pasar el cursor). Los iconos son SVG en línea, sin dependencias externas ni CDN: el proyecto solo
+funciona en localhost.
+
+El logo oficial está en `src/main/resources/public/` con el fondo ya vaciado a transparencia:
+`logo-ut.png` (logo completo con leyenda y sello, centrado en `login.html`) y `logo-marca-ut.png` (solo la
+marca "U" en cuadro, para las cabeceras de `menu.html` y de las páginas CRUD y para el favicon). Las dos se
+sirven desde `ControladorWeb.java` con `servirBinario(ctx, "image/png", recurso)`; ese helper usa
+`Recursos.leerBytes`, porque `Recursos.leer` decodifica con UTF-8 y destruiría los bytes del PNG. Para
+cambiar el archivo basta con sobrescribir el PNG con el mismo nombre.
+
+**Codificación:** todos los `.html`, `.css` y `.js` se guardan en UTF-8, cada documento declara
+`<meta charset="UTF-8">`, cada hoja de estilos declara `@charset "UTF-8";` y el servidor responde siempre
+`charset=utf-8`. Si agrega una página o un recurso nuevo, sirva el texto con
+`servirTexto(ctx, tipo, recurso)` (`ControladorWeb`): `ctx.result(String)` codifica con el charset de la
+respuesta y, sin esa declaración, Jetty usa ISO-8859-1 y rompe tildes y eñes.

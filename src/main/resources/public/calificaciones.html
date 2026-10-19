@@ -3,18 +3,26 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calificaciones - Universidad</title>
+  <meta name="theme-color" content="#0b6e4f" />
+  <link rel="icon" type="image/png" href="logo-marca-ut.png" />
+  <title>Calificaciones - Universidad del Tolima</title>
+  <link rel="stylesheet" href="marca.css" />
   <link rel="stylesheet" href="modulos.css" />
 </head>
 <body data-modulo="calificaciones">
   <div class="container">
     <div class="header">
-      <div>
-        <div class="brand">Universidad del Tolima</div>
-        <h2 id="titulo">Calificaciones</h2>
-      </div>
-      <a class="back" href="menu.html">Volver al panel</a>
+      <a class="marca-institucional" href="menu.html">
+        <img class="logo-ut" src="logo-marca-ut.png" alt="Marca de la Universidad del Tolima" width="46" height="46" />
+        <span class="marca-texto">
+          <strong>Universidad del Tolima</strong>
+          <small>Sistema Académico</small>
+        </span>
+      </a>
+      <a class="back boton boton-suave" href="menu.html">Volver al panel</a>
     </div>
+
+    <h2 id="titulo">Calificaciones</h2>
 
     <p class="ayuda" id="ayuda"></p>
     <div class="filtros" id="filtros" hidden></div>
