@@ -28,6 +28,7 @@ public final class CrudController<T> {
     private List<String> rolesLectura = List.of(Sesion.ADMINISTRATIVO, Sesion.PROFESOR);
     private List<String> rolesEscritura = List.of(Sesion.ADMINISTRATIVO);
     private BiConsumer<Context, T> antesEscribir = (ctx, t) -> { };
+    private BiConsumer<Context, Integer> antesEliminar = (ctx, id) -> { };
     private Function<T, T> despuesEscribir = t -> t;
     private String mensajeConflicto = "Los datos entran en conflicto con un registro existente.";
 
@@ -66,6 +67,12 @@ public final class CrudController<T> {
 
     public CrudController<T> antesEscribir(BiConsumer<Context, T> antesEscribir) {
         this.antesEscribir = antesEscribir;
+        return this;
+    }
+
+    /** Regla que debe cumplirse antes de borrar (una sección con matriculados no se elimina). */
+    public CrudController<T> antesEliminar(BiConsumer<Context, Integer> antesEliminar) {
+        this.antesEliminar = antesEliminar;
         return this;
     }
 
@@ -131,6 +138,7 @@ public final class CrudController<T> {
         app.delete("/api/" + ruta + "/{id}", ctx -> {
             Sesion.requerirRol(ctx, rolesEscritura.toArray(new String[0]));
             int id = Http.leerId(ctx, "id");
+            antesEliminar.accept(ctx, id);
             try {
                 if (dao.eliminar(id) == 0) {
                     throw new ApiException(404, "No se encontró " + nombreEntidad + ".");
@@ -151,6 +159,10 @@ public final class CrudController<T> {
     private ApiException traducir(SQLException ex, String mensajeGenerico) {
         if (Http.esReferenciaInexistente(ex)) {
             return new ApiException(400, "Alguna referencia no existe: revise la facultad, carrera, profesor, curso, periodo o estudiante indicados.");
+        }
+        if (Http.esBorradoBloqueado(ex)) {
+            return new ApiException(409, "No se puede eliminar " + nombreEntidad
+                    + ": todavía hay registros matriculados o asociados a él.");
         }
         if (Http.esDuplicado(ex)) {
             return new ApiException(409, mensajeConflicto);

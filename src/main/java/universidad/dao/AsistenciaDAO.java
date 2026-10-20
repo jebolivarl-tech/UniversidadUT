@@ -12,5 +12,8 @@ public interface AsistenciaDAO extends CRUD<Asistencia> {
 
     List<Asistencia> listarPorEstudiante(int idEstudiante);
 
+    /** Controles de un estudiante en una sección: con esto se decide la pérdida por inasistencia. */
+    List<Asistencia> listarPorEstudianteYSeccion(int idEstudiante, int idSeccion);
+
     int contarPorSeccionYEstado(int idSeccion, String estado);
 }

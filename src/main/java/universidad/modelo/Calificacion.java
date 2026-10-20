@@ -5,8 +5,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Calificación de un estudiante en una sección. El promedio lo calcula MySQL (columna generada,
- * 30 % + 30 % + 40 %) y el estado se deriva en el servidor: EN_CURSO si falta alguna nota,
- * APROBADO con promedio >= 3.0, REPROBADO en caso contrario.
+ * 30 % + 30 % + 40 %) y el estado lo fija {@code ServicioCalificaciones}: EN_CURSO si falta alguna
+ * nota, PERDIDO_POR_FALTA_DE_ASISTENCIA si el estudiante superó el faltas, APROBADO con promedio
+ * >= 3.0 y REPROBADO en caso contrario. Ninguno de los dos los decide el cliente.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Calificacion {
@@ -14,6 +15,8 @@ public class Calificacion {
     public static final String APROBADO = "APROBADO";
     public static final String REPROBADO = "REPROBADO";
     public static final String EN_CURSO = "EN_CURSO";
+    /** Nota alcanzada pero pérdida del curso por inasistencia no justificada. */
+    public static final String PERDIDO_POR_FALTA_DE_ASISTENCIA = "PERDIDO_POR_FALTA_DE_ASISTENCIA";
 
     public static final double PROMEDIO_APROBATORIO = 3.0;
 
@@ -24,7 +27,7 @@ public class Calificacion {
     private Double notaParcial2;
     private Double notaExamenFinal;
     private Double promedioFinal;
-    private String estado;
+    private String estado = EN_CURSO;
 
     public Calificacion() {
     }
@@ -48,6 +51,12 @@ public class Calificacion {
             return EN_CURSO;
         }
         return promedio(parcial1, parcial2, examenFinal) >= PROMEDIO_APROBATORIO ? APROBADO : REPROBADO;
+    }
+
+    /** La inasistencia no justificada pesa más que la nota: quien pierde por asistencia no aprueba. */
+    public static String estado(Double parcial1, Double parcial2, Double examenFinal, boolean pierdePorAsistencia) {
+        return pierdePorAsistencia ? PERDIDO_POR_FALTA_DE_ASISTENCIA
+                : estado(parcial1, parcial2, examenFinal);
     }
 
     public int getIdCalificacion() { return idCalificacion; }

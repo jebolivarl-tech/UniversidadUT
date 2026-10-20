@@ -77,6 +77,7 @@
       materiasCalificadas: 'Materias calificadas', materiasAprobadas: 'Materias aprobadas',
       promedioGeneral: 'Promedio general', controles: 'Controles registrados',
       porcentajeAsistencia: '% de asistencia', secciones: 'Secciones a mi cargo',
+      materiasPerdidasPorAsistencia: 'Perdidas por asistencia',
     };
 
     async function leerJson(ruta) {
@@ -111,7 +112,7 @@
       cuerpo.textContent = '';
       for (const columna of columnas) {
         const th = document.createElement('th');
-        th.textContent = columna;
+        th.textContent = columna.etiqueta;
         cabecera.appendChild(th);
       }
       if (!filas || filas.length === 0) {
@@ -159,15 +160,18 @@
       const esEstudiante = perfil.rol === 'ESTUDIANTE';
       const secciones = await leerJson('/api/mi/secciones');
       pintarTabla('Secciones', secciones, [
-        { clave: 'curso' }, { clave: 'profesor' }, { clave: 'periodo' }, { clave: 'aula' }, { clave: 'cupomaximo' },
+        { clave: 'curso', etiqueta: 'Curso' }, { clave: 'profesor', etiqueta: 'Profesor' },
+        { clave: 'periodo', etiqueta: 'Periodo' }, { clave: 'aula', etiqueta: 'Aula' },
+        { clave: 'ocupacion', etiqueta: 'Ocupación' },
       ]);
 
       const notas = await leerJson('/api/mi/calificaciones');
       if (esEstudiante) document.getElementById('tituloNotas').textContent = 'Mis calificaciones';
       else document.getElementById('tituloNotas').textContent = 'Calificaciones de mis secciones';
       pintarTabla('Notas', notas, [
-        { clave: 'curso' }, { clave: 'notaparcial1' }, { clave: 'notaparcial2' },
-        { clave: 'notaexamenfinal' }, { clave: 'promediofinal' }, { clave: 'estado' },
+        { clave: 'curso', etiqueta: 'Curso' }, { clave: 'notaparcial1', etiqueta: 'Parcial 1' },
+        { clave: 'notaparcial2', etiqueta: 'Parcial 2' }, { clave: 'notaexamenfinal', etiqueta: 'Examen final' },
+        { clave: 'promediofinal', etiqueta: 'Promedio' }, { clave: 'estado', etiqueta: 'Estado' },
       ]);
 
       const asistencias = await leerJson('/api/mi/asistencias');
@@ -175,14 +179,17 @@
         document.getElementById('tituloAsistencias').textContent = 'Controles de asistencia de mis secciones';
       }
       pintarTabla('Asistencias', asistencias, [
-        { clave: 'curso' }, { clave: 'fecha', formato: 'fecha' }, { clave: 'estado' },
+        { clave: 'curso', etiqueta: 'Curso' }, { clave: 'fecha', etiqueta: 'Fecha', formato: 'fecha' },
+        { clave: 'estado', etiqueta: 'Estado' },
       ]);
 
       if (esEstudiante) {
         document.getElementById('matriculas').hidden = false;
         const matriculas = await leerJson('/api/mi/matriculas');
         pintarTabla('Matriculas', matriculas, [
-          { clave: 'curso' }, { clave: 'creditos' }, { clave: 'periodo' }, { clave: 'nota' },
+          { clave: 'curso', etiqueta: 'Curso' }, { clave: 'creditos', etiqueta: 'Créditos' },
+          { clave: 'periodo', etiqueta: 'Periodo' }, { clave: 'nota', etiqueta: 'Nota' },
+          { clave: 'estado', etiqueta: 'Estado' },
         ]);
       }
     }

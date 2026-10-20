@@ -239,8 +239,19 @@ tbody tr.selected {
   box-shadow: inset 3px 0 0 var(--acento);
 }
 
-td.actions { display: flex; gap: 8px; }
+/* Estado académico derivado por el servidor: se colorea, nunca lo escribe el usuario. */
+td.estado {
+  white-space: nowrap;
+  font-weight: 600;
+}
 
+td.estado-aprobado { color: var(--exito); }
+td.estado-reprobado { color: var(--peligro); }
+td.estado-perdido { color: var(--oro-700); }
+td.estado-curso,
+td.estado-desconocido { color: var(--neutro-muted); font-weight: 500; }
+
+td.actions { display: flex; gap: 8px; }
 td.actions button {
   min-height: 34px;
   padding: 6px 12px;

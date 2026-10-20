@@ -11,6 +11,7 @@ import org.eclipse.jetty.server.session.SessionHandler;
 import universidad.dao.CarreraDAOImpl;
 import universidad.dao.EstudianteDAOImpl;
 import universidad.dao.UsuarioDAOImpl;
+import universidad.servicio.ReglaVioladaException;
 import universidad.web.ApiException;
 import universidad.web.AuthController;
 import universidad.web.CarreraController;
@@ -104,6 +105,9 @@ public class ControladorWeb {
     private static void registrarManejoDeErrores(Javalin app) {
         app.exception(ApiException.class, (ex, ctx) ->
                 ctx.status(ex.getStatus()).json(Map.of("error", ex.getMessage())));
+        // Regla académica incumplida: la respuesta es un conflicto (409) con el texto para el usuario.
+        app.exception(universidad.servicio.ReglaVioladaException.class, (ex, ctx) ->
+                ctx.status(ex.getHttpStatus()).json(Map.of("error", ex.getMessage())));
         app.exception(IllegalStateException.class, (ex, ctx) -> {
             ex.printStackTrace();
             ctx.status(503).json(Map.of("error", "Servicio no disponible. Compruebe la conexión con la base de datos."));

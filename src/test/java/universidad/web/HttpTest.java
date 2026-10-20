@@ -52,5 +52,9 @@ class HttpTest {
 
         assertTrue(Http.esReferenciaInexistente(new SQLException("", "23000", 1452)));
         assertFalse(Http.esDuplicado(new SQLException("", "23000", 1452)));
+
+        // 1451: la base bloquea el borrado porque otra fila todavía referencia la que se va.
+        assertTrue(Http.esBorradoBloqueado(new SQLException("", "23000", 1451)));
+        assertFalse(Http.esBorradoBloqueado(new SQLException("", "23000", 1062)));
     }
 }

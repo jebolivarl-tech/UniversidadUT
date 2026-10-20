@@ -71,7 +71,7 @@ public class CalificacionDAOImpl implements CalificacionDAO {
         try (Connection cx = Conexion.getConexion();
              PreparedStatement ps = cx.prepareStatement(INSERT, Statement.RETURN_GENERATED_KEYS)) {
             int posicion = escribirCuerpo(ps, c);
-            ps.setString(posicion, estado(c));
+            ps.setString(posicion, c.getEstado());
             int filas = ps.executeUpdate();
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {
@@ -87,7 +87,7 @@ public class CalificacionDAOImpl implements CalificacionDAO {
         try (Connection cx = Conexion.getConexion();
              PreparedStatement ps = cx.prepareStatement(UPDATE)) {
             int posicion = escribirCuerpo(ps, c);
-            ps.setString(posicion, estado(c));
+            ps.setString(posicion, c.getEstado());
             ps.setInt(posicion + 1, c.getIdCalificacion());
             return ps.executeUpdate();
         }
@@ -100,11 +100,6 @@ public class CalificacionDAOImpl implements CalificacionDAO {
             ps.setInt(1, id);
             return ps.executeUpdate();
         }
-    }
-
-    /** El estado no lo decide el cliente: se deriva de las tres notas (ver Calificacion). */
-    private static String estado(Calificacion c) {
-        return Calificacion.estado(c.getNotaParcial1(), c.getNotaParcial2(), c.getNotaExamenFinal());
     }
 
     private static int escribirCuerpo(PreparedStatement ps, Calificacion c) throws SQLException {

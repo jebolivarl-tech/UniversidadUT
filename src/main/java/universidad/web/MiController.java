@@ -28,6 +28,7 @@ import universidad.modelo.Facultad;
 import universidad.modelo.Matricula;
 import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Profesor;
+import universidad.servicio.ReglasAcademicas;
 import universidad.modelo.Seccion;
 
 /**
@@ -136,7 +137,7 @@ public final class MiController {
             fila.put("profesor", nombreCompleto(mapaProfesores.get(s.getIdProfesor())));
             fila.put("periodo", nombre(mapaPeriodos.get(s.getIdPeriodo()), PeriodoAcademico::getNombre));
             fila.put("aula", s.getAula());
-            fila.put("cupoMaximo", s.getCupoMaximo());
+            fila.put("ocupacion", s.getCuposOcupados() + " de " + s.getCupoMaximo());
             filas.add(fila);
         }
         ctx.json(filas);
@@ -192,10 +193,12 @@ public final class MiController {
             Curso curso = mapaCursos.get(m.getIdCurso());
             Map<String, Object> fila = new LinkedHashMap<>();
             fila.put("idMatricula", m.getIdMatricula());
+            fila.put("idSeccion", m.getIdSeccion());
             fila.put("curso", nombre(curso, Curso::getNombre));
             fila.put("creditos", curso == null ? null : curso.getCreditos());
             fila.put("periodo", m.getPeriodo());
             fila.put("nota", m.getNota());
+            fila.put("estado", m.getEstado());
             filas.add(fila);
         }
         ctx.json(filas);
@@ -234,7 +237,7 @@ public final class MiController {
         return seccion == null ? null : mapaCursos.get(seccion.getIdCurso());
     }
 
-    /** Promedio general, materias aprobadas y porcentaje de asistencia del estudiante. */
+    /** Promedio general, materias aprobadas, perdidas por inasistencia y porcentaje de asistencia. */
     private static Map<String, Object> resumen(List<Calificacion> notas, List<Asistencia> controles) {
         List<Double> definitivas = notas.stream()
                 .filter(c -> !Calificacion.EN_CURSO.equals(c.getEstado()))
@@ -242,17 +245,18 @@ public final class MiController {
                 .filter(Objects::nonNull)
                 .toList();
         long aprobadas = notas.stream().filter(c -> Calificacion.APROBADO.equals(c.getEstado())).count();
-        long conAsistencia = controles.stream()
-                .filter(a -> !Asistencia.FALTO.equals(a.getEstado())).count();
+        long perdidasPorAsistencia = notas.stream()
+                .filter(c -> Calificacion.PERDIDO_POR_FALTA_DE_ASISTENCIA.equals(c.getEstado())).count();
 
         Map<String, Object> resumen = new LinkedHashMap<>();
         resumen.put("materiasCalificadas", definitivas.size());
         resumen.put("materiasAprobadas", aprobadas);
+        resumen.put("materiasPerdidasPorAsistencia", perdidasPorAsistencia);
         resumen.put("promedioGeneral", definitivas.isEmpty() ? null
                 : Math.round(definitivas.stream().mapToDouble(Double::doubleValue).average().orElse(0) * 100) / 100.0);
         resumen.put("controles", controles.size());
         resumen.put("porcentajeAsistencia", controles.isEmpty() ? null
-                : Math.round(conAsistencia * 10000.0 / controles.size()) / 100.0);
+                : Math.round(ReglasAcademicas.porcentajeDeAsistencia(controles) * 10000) / 100.0);
         return resumen;
     }
 

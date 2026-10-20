@@ -96,6 +96,8 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
         final Supplier<List<T>> listado;
         final BiConsumer<T, Integer> fijarId;
         final Consumer<T> antesEscribir;
+        final Consumer<T> despuesEscribir;
+        final Consumer<Integer> antesEliminar;
         final List<String> cabeceras;
         final List<Function<T, ?>> columnas;
         final List<Campo<T>> campos;
@@ -110,6 +112,8 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
             this.listado = b.listado != null ? b.listado : b.dao::listarTodos;
             this.fijarId = b.fijarId;
             this.antesEscribir = b.antesEscribir;
+            this.despuesEscribir = b.despuesEscribir;
+            this.antesEliminar = b.antesEliminar;
             this.cabeceras = b.cabeceras;
             this.columnas = b.columnas;
             this.campos = b.campos;
@@ -129,6 +133,8 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
             private Supplier<List<T>> listado;
             private BiConsumer<T, Integer> fijarId = (t, id) -> { };
             private Consumer<T> antesEscribir = t -> { };
+            private Consumer<T> despuesEscribir = t -> { };
+            private Consumer<Integer> antesEliminar = id -> { };
             private final List<String> cabeceras = new ArrayList<>();
             private final List<Function<T, ?>> columnas = new ArrayList<>();
             private final List<Campo<T>> campos = new ArrayList<>();
@@ -156,6 +162,18 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
             /** Comprobaciones de integridad antes de registrar o actualizar. */
             public Builder<T> antesEscribir(Consumer<T> control) {
                 this.antesEscribir = this.antesEscribir.andThen(control);
+                return this;
+            }
+
+            /** Efecto sobre otros registros una vez guardada la escritura (la nota definitiva del curso). */
+            public Builder<T> despuesEscribir(Consumer<T> accion) {
+                this.despuesEscribir = this.despuesEscribir.andThen(accion);
+                return this;
+            }
+
+            /** Regla que impide borrar: se ejecuta con el id de la fila seleccionada. */
+            public Builder<T> antesEliminar(Consumer<Integer> control) {
+                this.antesEliminar = this.antesEliminar.andThen(control);
                 return this;
             }
 
@@ -349,6 +367,7 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
             if (definicion.dao.registrar(entidad) == 0) {
                 throw new IllegalStateException("La base de datos no creó ningún registro.");
             }
+            definicion.despuesEscribir.accept(entidad);
             limpiar();
             recargar();
             avisar("Registro creado.");
@@ -375,6 +394,7 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
                 avisar("No hubo cambios en el registro.");
                 return;
             }
+            definicion.despuesEscribir.accept(entidad);
             limpiar();
             recargar();
             avisar("Registro actualizado.");
@@ -396,7 +416,9 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
             return;
         }
         try {
-            if (definicion.dao.eliminar(idDeFila(fila)) == 0) {
+            Integer id = idDeFila(fila);
+            definicion.antesEliminar.accept(id);
+            if (definicion.dao.eliminar(id) == 0) {
                 avisar("El registro ya no existe.");
                 recargar();
                 return;

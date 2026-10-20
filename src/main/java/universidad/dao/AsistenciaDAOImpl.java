@@ -34,6 +34,12 @@ public class AsistenciaDAOImpl implements AsistenciaDAO {
     }
 
     @Override
+    public List<Asistencia> listarPorEstudianteYSeccion(int idEstudiante, int idSeccion) {
+        return consultar("SELECT * FROM asistencias WHERE id_estudiante = ? AND id_seccion = ? ORDER BY fecha",
+                idEstudiante, idSeccion);
+    }
+
+    @Override
     public int contarPorSeccionYEstado(int idSeccion, String estado) {
         String sql = "SELECT COUNT(*) FROM asistencias WHERE id_seccion = ? AND estado = ?";
         try (Connection cx = Conexion.getConexion();

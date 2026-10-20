@@ -4,7 +4,7 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import java.sql.Date;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.function.Function;
 import universidad.dao.AsistenciaDAO;
 import universidad.dao.CalificacionDAO;
@@ -34,11 +34,15 @@ import universidad.modelo.Matricula;
 import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Profesor;
 import universidad.modelo.Seccion;
+import universidad.servicio.ServicioAsistencias;
+import universidad.servicio.ServicioCalificaciones;
+import universidad.servicio.ServicioMatriculas;
+import universidad.servicio.ServicioSecciones;
 
 /**
  * Define y monta los CRUD REST de los módulos académicos sobre {@link CrudController}: filtros por
- * query string, roles por operación y las reglas propias de cada entidad (escala de notas, propiedad
- * de la sección del profesor, duplicados de asistencia).
+ * query string y roles por operación. Las reglas académicas no viven aquí: se delega en los
+ * servicios de dominio, que son los mismos que usa la aplicación de escritorio.
  */
 public final class ModulosCrud {
 
@@ -53,6 +57,15 @@ public final class ModulosCrud {
     private final EstudianteDAO estudiantes = new EstudianteDAOImpl();
     private final CarreraDAO carreras = new CarreraDAOImpl();
 
+    private final ServicioSecciones servicioSecciones =
+            new ServicioSecciones(secciones, cursos, profesores, periodos, matriculas, estudiantes);
+    private final ServicioMatriculas servicioMatriculas =
+            new ServicioMatriculas(estudiantes, cursos, secciones, periodos, matriculas, asistencias);
+    private final ServicioAsistencias servicioAsistencias =
+            new ServicioAsistencias(asistencias, estudiantes, secciones, matriculas, periodos);
+    private final ServicioCalificaciones servicioCalificaciones =
+            new ServicioCalificaciones(estudiantes, secciones, matriculas, asistencias, servicioMatriculas);
+
     public void registrar(Javalin app) {
         registrarFacultades(app);
         registrarProfesores(app);
@@ -62,6 +75,7 @@ public final class ModulosCrud {
         registrarMatriculas(app);
         registrarAsistencias(app);
         registrarCalificaciones(app);
+        registrarCupos(app);
     }
 
     public MiController controladorMiInformacion() {
@@ -108,6 +122,7 @@ public final class ModulosCrud {
                     requerir(carreras.leerPorId(c.getIdCarrera()) != null, "la carrera");
                     requerir(profesores.leerPorId(c.getIdProfesor()) != null, "el profesor");
                 })
+                .antesEliminar((ctx, id) -> servicioSecciones.validarEliminacionDeCurso(id))
                 .listado(ctx -> {
                     List<Curso> porCarrera = porFiltro(cursos.listarTodos(), Curso::getIdCarrera, Http.enteroQuery(ctx, "carrera"));
                     return porFiltro(porCarrera, Curso::getIdProfesor, Http.enteroQuery(ctx, "profesor"));
@@ -120,12 +135,8 @@ public final class ModulosCrud {
     private void registrarSecciones(Javalin app) {
         new CrudController<>(secciones, Seccion.class, "secciones", "la sección")
                 .fijarId(Seccion::setIdSeccion)
-                .antesEscribir((ctx, s2) -> {
-                    requerir(cursos.leerPorId(s2.getIdCurso()) != null, "el curso");
-                    requerir(profesores.leerPorId(s2.getIdProfesor()) != null, "el profesor");
-                    requerir(periodos.leerPorId(s2.getIdPeriodo()) != null, "el periodo");
-                    asegurarAulaLibre(s2);
-                })
+                .antesEscribir((ctx, s) -> servicioSecciones.preparar(s))
+                .antesEliminar((ctx, id) -> servicioSecciones.validarEliminacion(id))
                 .listado(ctx -> {
                     List<Seccion> resultado = Sesion.PROFESOR.equals(Sesion.rol(ctx))
                             ? secciones.listarPorProfesor(Sesion.requerirIdProfesor(ctx))
@@ -135,17 +146,15 @@ public final class ModulosCrud {
                     return porFiltro(resultado, Seccion::getIdProfesor, Http.enteroQuery(ctx, "profesor"));
                 })
                 .valido(Validaciones::esSeccionValida)
-                .mensajeConflicto("El curso, el profesor o el periodo de la sección no existe.")
+                .mensajeConflicto("Ese curso ya tiene un grupo en esa aula para el periodo, o alguna "
+                        + "referencia de la sección no existe.")
                 .registrar(app);
     }
 
     private void registrarMatriculas(Javalin app) {
         new CrudController<>(matriculas, Matricula.class, "matriculas", "la matrícula")
                 .fijarId(Matricula::setIdMatricula)
-                .antesEscribir((ctx, m) -> {
-                    requerir(estudiantes.leerPorId(m.getIdEstudiante()) != null, "el estudiante");
-                    requerir(cursos.leerPorId(m.getIdCurso()) != null, "el curso");
-                })
+                .antesEscribir((ctx, m) -> servicioMatriculas.preparar(m))
                 .listado(ctx -> {
                     List<Matricula> todas = matriculas.listarTodos();
                     if (Sesion.PROFESOR.equals(Sesion.rol(ctx))) {
@@ -155,7 +164,9 @@ public final class ModulosCrud {
                     }
                     List<Matricula> porEstudiante = porFiltro(todas,
                             Matricula::getIdEstudiante, Http.enteroQuery(ctx, "estudiante"));
-                    return porFiltro(porEstudiante, Matricula::getIdCurso, Http.enteroQuery(ctx, "curso"));
+                    List<Matricula> porCurso = porFiltro(porEstudiante,
+                            Matricula::getIdCurso, Http.enteroQuery(ctx, "curso"));
+                    return porFiltro(porCurso, Matricula::getIdSeccion, Http.enteroQuery(ctx, "seccion"));
                 })
                 .valido(Validaciones::esMatriculaValida)
                 .mensajeConflicto("El estudiante o el curso no existe, o la matrícula ya está registrada.")
@@ -180,9 +191,36 @@ public final class ModulosCrud {
                 .valido(Validaciones::esCalificacionValida)
                 .rolesEscritura(Sesion.ADMINISTRATIVO, Sesion.PROFESOR)
                 .antesEscribir(this::validarCalificacionEscribible)
-                .despuesEscribir(ModulosCrud::conPromedioCalculado)
+                .despuesEscribir(this::propagarNotaDefinitiva)
                 .mensajeConflicto("Ya existe una calificación para ese estudiante en esa sección. Actualícela.")
                 .registrar(app);
+    }
+
+    /**
+     * Consultas que los formularios necesitan para no adivinar: cuánto cupo queda en un grupo y
+     * qué grupos puede inscribir un estudiante concreto.
+     */
+    private void registrarCupos(Javalin app) {
+        app.get("/api/secciones/{id}/cupos", ctx -> {
+            Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO, Sesion.PROFESOR);
+            int id = Http.leerId(ctx, "id");
+            Seccion seccion = secciones.leerPorId(id);
+            if (seccion == null) {
+                throw new ApiException(404, "No se encontró la sección.");
+            }
+            asegurarSeccionVisible(ctx, id);
+            ctx.json(Map.of(
+                    "idSeccion", id,
+                    "descripcion", seccion.describir(),
+                    "cupoMaximo", seccion.getCupoMaximo(),
+                    "ocupados", seccion.getCuposOcupados(),
+                    "disponibles", servicioMatriculas.cuposDisponibles(id)));
+        });
+
+        app.get("/api/estudiantes/{id}/secciones-inscribibles", ctx -> {
+            Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO);
+            ctx.json(servicioSecciones.inscribiblesPara(Http.leerId(ctx, "id")));
+        });
     }
 
     /** El profesor solo ve asistencias de sus secciones; el administrativo ve todas. */
@@ -220,29 +258,18 @@ public final class ModulosCrud {
     }
 
     private void validarAsistenciaEscribible(Context ctx, Asistencia a) {
-        a.setEstado(a.getEstado().toUpperCase());
-        requerir(estudiantes.leerPorId(a.getIdEstudiante()) != null, "el estudiante");
-        requerir(secciones.leerPorId(a.getIdSeccion()) != null, "la sección");
         asegurarSeccionEscribible(ctx, a.getIdSeccion());
-        boolean repetida = asistencias.listarPorSeccionYFecha(a.getIdSeccion(), a.getFecha()).stream()
-                .anyMatch(otra -> otra.getIdEstudiante() == a.getIdEstudiante()
-                        && otra.getIdAsistencia() != a.getIdAsistencia());
-        if (repetida) {
-            throw new ApiException(409, "Ese estudiante ya tiene un registro de asistencia en la fecha indicada.");
-        }
+        servicioAsistencias.preparar(a);
     }
 
     private void validarCalificacionEscribible(Context ctx, Calificacion c) {
-        requerir(estudiantes.leerPorId(c.getIdEstudiante()) != null, "el estudiante");
-        requerir(secciones.leerPorId(c.getIdSeccion()) != null, "la sección");
         asegurarSeccionEscribible(ctx, c.getIdSeccion());
+        servicioCalificaciones.preparar(c);
     }
 
-    /** Promedio y estado calculados igual que en la base de datos, para responder sin otra consulta. */
-    private static Calificacion conPromedioCalculado(Calificacion c) {
-        double promedio = Math.round(Calificacion.promedio(c.getNotaParcial1(), c.getNotaParcial2(), c.getNotaExamenFinal()) * 100) / 100.0;
-        c.setPromedioFinal(promedio);
-        c.setEstado(Calificacion.estado(c.getNotaParcial1(), c.getNotaParcial2(), c.getNotaExamenFinal()));
+    /** Devuelve la calificación con el promedio y estado ya calculados, y sincroniza la matrícula. */
+    private Calificacion propagarNotaDefinitiva(Calificacion c) {
+        servicioCalificaciones.propagarNotaDefinitiva(c);
         return c;
     }
 
@@ -268,18 +295,6 @@ public final class ModulosCrud {
         }
         Seccion seccion = secciones.leerPorId(idSeccion);
         return seccion != null && seccion.getIdProfesor() == mio;
-    }
-
-    /** La tabla secciones no tiene clave única para (curso, periodo, aula): se controla en la aplicación. */
-    private void asegurarAulaLibre(Seccion seccion) {
-        boolean ocupada = secciones.listarTodos().stream().anyMatch(otra ->
-                otra.getIdSeccion() != seccion.getIdSeccion()
-                        && otra.getIdCurso() == seccion.getIdCurso()
-                        && otra.getIdPeriodo() == seccion.getIdPeriodo()
-                        && Objects.equals(otra.getAula(), seccion.getAula()));
-        if (ocupada) {
-            throw new ApiException(409, "Ya existe una sección con esa aula para el mismo curso y periodo.");
-        }
     }
 
     private static void requerir(boolean existe, String nombreRecurso) {

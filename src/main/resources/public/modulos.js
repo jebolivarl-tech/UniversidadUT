@@ -72,13 +72,14 @@ const MODULOS = {
     titulo: 'Secciones',
     recurso: 'secciones',
     idField: 'idSeccion',
+    ayuda: 'Un aula no puede repetir el mismo curso y periodo, y el cupo no puede bajar de los estudiantes ya matriculados.',
     columnas: [
       { campo: 'idSeccion', etiqueta: 'ID' },
       { campo: 'idCurso', etiqueta: 'Curso', ref: 'cursos' },
       { campo: 'idProfesor', etiqueta: 'Profesor', ref: 'profesores' },
       { campo: 'idPeriodo', etiqueta: 'Periodo', ref: 'periodos' },
       { campo: 'aula', etiqueta: 'Aula' },
-      { campo: 'cupoMaximo', etiqueta: 'Cupo' },
+      { campo: 'cuposOcupados', etiqueta: 'Ocupación', formato: 'cupos' },
     ],
     filtros: [
       { nombre: 'periodo', etiqueta: 'Filtrar por periodo', tipo: 'referencia', ref: 'periodos' },
@@ -95,21 +96,24 @@ const MODULOS = {
     titulo: 'Matrículas',
     recurso: 'matriculas',
     idField: 'idMatricula',
+    ayuda: 'La sección decide el curso y el periodo. Al elegir el estudiante, la lista solo trae los grupos que él puede inscribir: de su carrera, con el periodo abierto, cupo disponible y sin pasarse de 20 créditos ni repetir un curso del periodo.',
     columnas: [
       { campo: 'idMatricula', etiqueta: 'ID' },
       { campo: 'idEstudiante', etiqueta: 'Estudiante', ref: 'estudiantes' },
-      { campo: 'idCurso', etiqueta: 'Curso', ref: 'cursos' },
+      { campo: 'idSeccion', etiqueta: 'Sección', ref: 'secciones' },
       { campo: 'periodo', etiqueta: 'Periodo' },
       { campo: 'nota', etiqueta: 'Nota' },
+      { campo: 'estado', etiqueta: 'Estado', formato: 'academico' },
     ],
     filtros: [
       { nombre: 'curso', etiqueta: 'Filtrar por curso', tipo: 'referencia', ref: 'cursos' },
       { nombre: 'estudiante', etiqueta: 'Filtrar por estudiante', tipo: 'referencia', ref: 'estudiantes' },
+      { nombre: 'seccion', etiqueta: 'Filtrar por sección', tipo: 'referencia', ref: 'secciones' },
     ],
     campos: [
       { nombre: 'idEstudiante', etiqueta: 'Estudiante', tipo: 'referencia', ref: 'estudiantes', requerido: true },
-      { nombre: 'idCurso', etiqueta: 'Curso', tipo: 'referencia', ref: 'cursos', requerido: true },
-      { nombre: 'periodo', etiqueta: 'Periodo (texto)', tipo: 'texto', requerido: true },
+      { nombre: 'idSeccion', etiqueta: 'Sección', tipo: 'referencia', ref: 'secciones', requerido: true,
+        inscribiblesDe: 'idEstudiante' },
       { nombre: 'nota', etiqueta: 'Nota (0.0 a 5.0, opcional)', tipo: 'numero', min: 0, max: 5, step: 0.01 },
     ],
   },
@@ -118,6 +122,7 @@ const MODULOS = {
     recurso: 'asistencias',
     idField: 'idAsistencia',
     escritura: ['ADMINISTRATIVO', 'PROFESOR'],
+    ayuda: 'Solo se pasa lista a estudiantes matriculados en la sección y con fechas dentro del periodo. Cuatro faltas sin justificar hacen perder el curso.',
     columnas: [
       { campo: 'idAsistencia', etiqueta: 'ID' },
       { campo: 'idEstudiante', etiqueta: 'Estudiante', ref: 'estudiantes' },
@@ -141,7 +146,7 @@ const MODULOS = {
     recurso: 'calificaciones',
     idField: 'idCalificacion',
     escritura: ['ADMINISTRATIVO', 'PROFESOR'],
-    ayuda: 'El promedio y el estado los calcula el servidor: 30% + 30% + 40%, se aprueba con 3.0.',
+    ayuda: 'El servidor calcula el promedio (30 % + 30 % + 40 %) y el estado: se aprueba con 3.0, salvo que las faltas no justificadas hagan perder el curso por asistencia.',
     columnas: [
       { campo: 'idCalificacion', etiqueta: 'ID' },
       { campo: 'idEstudiante', etiqueta: 'Estudiante', ref: 'estudiantes' },
@@ -150,7 +155,7 @@ const MODULOS = {
       { campo: 'notaParcial2', etiqueta: 'Parcial 2' },
       { campo: 'notaExamenFinal', etiqueta: 'Examen final' },
       { campo: 'promedioFinal', etiqueta: 'Promedio' },
-      { campo: 'estado', etiqueta: 'Estado' },
+      { campo: 'estado', etiqueta: 'Estado', formato: 'academico' },
     ],
     filtros: [
       { nombre: 'seccion', etiqueta: 'Filtrar por sección', tipo: 'referencia', ref: 'secciones' },
@@ -204,8 +209,10 @@ function idDe(recurso) {
 function etiqueta(item, recurso) {
   if (recurso === 'profesores' || recurso === 'estudiantes') return `${item.nombre} ${item.apellido}`.trim();
   if (recurso === 'secciones') {
-    const curso = (CATALOGOS.cursos || []).find((c) => c.idCurso === item.idCurso);
-    return `${item.aula}${curso ? ` · ${curso.nombre}` : ''}`;
+    const materia = item.nombreCurso
+      ?? (CATALOGOS.cursos || []).find((c) => c.idCurso === item.idCurso)?.nombre;
+    const partes = [materia, item.aula, item.nombrePeriodo].filter(Boolean);
+    return `${partes.join(' · ')} (${item.cuposOcupados ?? 0}/${item.cupoMaximo})`;
   }
   return String(item.nombre ?? item.id ?? '');
 }
@@ -234,6 +241,28 @@ async function cargarCatalogosNecesarios(config) {
   await Promise.all([...necesarios].map(cargarCatalogo));
 }
 
+/** Llena un <select> de referencia desde la lista dada, conservando la selección si sigue existiendo. */
+function llenarReferencia(control, items, campo, textoSiVacio) {
+  const anterior = control.value;
+  control.textContent = '';
+  const vacio = document.createElement('option');
+  vacio.value = '';
+  if (items.length === 0 && textoSiVacio) {
+    vacio.disabled = true;
+    vacio.textContent = textoSiVacio;
+  } else {
+    vacio.textContent = campo.requerido ? 'Seleccione…' : '— sin valor —';
+  }
+  control.appendChild(vacio);
+  for (const item of items) {
+    const opcion = document.createElement('option');
+    opcion.value = item[idDe(campo.ref)];
+    opcion.textContent = etiqueta(item, campo.ref);
+    control.appendChild(opcion);
+  }
+  if ([...control.options].some((o) => o.value === anterior && !o.disabled)) control.value = anterior;
+}
+
 function crearControl(campo, prefijo) {
   const label = document.createElement('label');
   const texto = document.createElement('span');
@@ -243,18 +272,13 @@ function crearControl(campo, prefijo) {
   let control;
   if (campo.tipo === 'referencia' || campo.tipo === 'lista') {
     control = document.createElement('select');
-    const vacio = document.createElement('option');
-    vacio.value = '';
-    vacio.textContent = campo.requerido ? 'Seleccione…' : '— sin valor —';
-    control.appendChild(vacio);
     if (campo.tipo === 'referencia') {
-      for (const item of CATALOGOS[campo.ref] || []) {
-        const opcion = document.createElement('option');
-        opcion.value = item[idDe(campo.ref)];
-        opcion.textContent = etiqueta(item, campo.ref);
-        control.appendChild(opcion);
-      }
+      llenarReferencia(control, CATALOGOS[campo.ref] || [], campo);
     } else {
+      const vacio = document.createElement('option');
+      vacio.value = '';
+      vacio.textContent = campo.requerido ? 'Seleccione…' : '— sin valor —';
+      control.appendChild(vacio);
       for (const valor of campo.opciones) {
         const opcion = document.createElement('option');
         opcion.value = valor;
@@ -309,8 +333,51 @@ function escribirValor(campo, valor) {
   control.value = valor === null || valor === undefined ? '' : valor;
 }
 
-function cuerpoDelFormulario(config) {
-  const cuerpo = {};
+/**
+ * Un campo marcado con `inscribiblesDe` deja de ser una lista a ciegas: pregunta al servidor qué
+ * puede elegir este registro (en matrículas, los grupos de la carrera del estudiante con periodo
+ * abierto, cupo disponible y créditos que le caben) y ofrece solo eso.
+ */
+async function actualizarInscribibles(campo) {
+  const destino = document.getElementById(`campo-${campo.nombre}`);
+  const driver = document.getElementById(`campo-${campo.inscribiblesDe}`);
+  if (!destino || !driver) return;
+  const id = Number(driver.value);
+  if (!Number.isInteger(id) || id <= 0) {
+    llenarReferencia(destino, [], campo, 'Seleccione primero el estudiante.');
+    return;
+  }
+  const respuesta = await fetch(`${API_BASE_URL}/api/estudiantes/${id}/secciones-inscribibles`,
+    { credentials: 'include' });
+  if (!respuesta.ok) {
+    showMessage(await responseError(respuesta), true);
+    return;
+  }
+  llenarReferencia(destino, await respuesta.json(), campo, 'No hay grupos disponibles para este estudiante.');
+}
+
+function enlazarInscribibles(config) {
+  for (const campo of config.campos) {
+    if (!campo.inscribiblesDe) continue;
+    const driver = document.getElementById(`campo-${campo.inscribiblesDe}`);
+    if (driver && !driver.dataset.inscribiblesEnlazado) {
+      driver.dataset.inscribiblesEnlazado = 'si';
+      driver.addEventListener('change', () => actualizarInscribibles(campo));
+    }
+    actualizarInscribibles(campo);
+  }
+}
+
+/** Al editar, la sección actual no aparece entre las inscribibles: ahí el estudiante ya está matriculado. */
+function mostrarCatalogoCompleto(config) {
+  for (const campo of config.campos) {
+    if (!campo.inscribiblesDe) continue;
+    const control = document.getElementById(`campo-${campo.nombre}`);
+    if (control) llenarReferencia(control, CATALOGOS[campo.ref] || [], campo);
+  }
+}
+
+function cuerpoDelFormulario(config) {  const cuerpo = {};
   for (const campo of config.campos) {
     const valor = leerValor(campo);
     if (valor === null && campo.tipo === 'clave') continue;
@@ -323,6 +390,7 @@ function textoCelula(columna, item) {
   const valor = item[columna.campo];
   if (columna.formato === 'fecha') return formatDateForDisplay(valor);
   if (columna.formato === 'estado') return valor ? 'Sí' : 'No';
+  if (columna.formato === 'cupos') return `${valor ?? 0} / ${item.cupoMaximo}`;
   if (columna.ref) {
     const catalogo = CATALOGOS[columna.ref] || [];
     const encontrado = catalogo.find((x) => x[idDe(columna.ref)] === valor);
@@ -331,6 +399,14 @@ function textoCelula(columna, item) {
   }
   return valor === null || valor === undefined ? '' : String(valor);
 }
+
+/** El estado académico se colorea: aprueba, reprueba o pierde por asistencia. */
+const ESTADOS_ACADEMICOS = {
+  EN_CURSO: 'curso',
+  APROBADO: 'aprobado',
+  REPROBADO: 'reprobado',
+  PERDIDO_POR_FALTA_DE_ASISTENCIA: 'perdido',
+};
 
 function puedeEscribir(config) {
   return (config.escritura || ['ADMINISTRATIVO']).includes(rolActual);
@@ -371,6 +447,9 @@ async function refrescarTabla(config) {
     for (const columna of config.columnas) {
       const td = document.createElement('td');
       td.textContent = textoCelula(columna, item);
+      if (columna.formato === 'academico') {
+        td.className = `estado ${ESTADOS_ACADEMICOS[item[columna.campo]] || 'desconocido'}`;
+      }
       tr.appendChild(td);
     }
     const td = document.createElement('td');
@@ -380,6 +459,7 @@ async function refrescarTabla(config) {
     editar.textContent = 'Editar';
     editar.addEventListener('click', () => {
       edicion = item;
+      mostrarCatalogoCompleto(config);
       for (const campo of config.campos) escribirValor(campo, item[campo.nombre]);
       document.getElementById('guardar').textContent = 'Guardar cambios';
       document.getElementById('cancelar').hidden = false;
@@ -437,6 +517,7 @@ function salirDeEdicion(config) {
   document.getElementById('guardar').textContent = 'Registrar';
   document.getElementById('cancelar').hidden = true;
   for (const campo of config.campos) escribirValor(campo, null);
+  enlazarInscribibles(config);
 }
 
 async function montarModulo(clave) {
@@ -489,6 +570,7 @@ async function montarModulo(clave) {
     showMessage(`Su rol (${rolActual}) es de solo lectura en este módulo.`, false);
   } else {
     for (const campo of config.campos) escribirValor(campo, null);
+    enlazarInscribibles(config);
   }
 
   await refrescarTabla(config);

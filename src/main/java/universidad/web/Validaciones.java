@@ -86,11 +86,11 @@ public final class Validaciones {
                 && s.getCupoMaximo() >= 1 && s.getCupoMaximo() <= 200;
     }
 
+    /** El curso y el periodo no se validan aquí: los deriva la sección en ServicioMatriculas. */
     public static boolean esMatriculaValida(Matricula m) {
         return m != null
                 && m.getIdEstudiante() > 0
-                && m.getIdCurso() > 0
-                && textoValido(m.getPeriodo(), 20)
+                && m.getIdSeccion() > 0
                 && notaOpcionalValida(m.getNota());
     }
 

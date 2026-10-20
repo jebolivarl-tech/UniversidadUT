@@ -54,6 +54,11 @@ public final class Http {
         return code == 1452 || code == 1586;
     }
 
+    /** 1451: otra tabla todavía referencia la fila, así que la base de datos bloquea el borrado. */
+    public static boolean esBorradoBloqueado(SQLException ex) {
+        return ex.getErrorCode() == 1451;
+    }
+
     /** IP del cliente. Solo confía en X-Forwarded-For si TRUST_PROXY=true (detrás de un proxy inverso propio). */
     public static String ipCliente(Context ctx) {
         if ("true".equalsIgnoreCase(System.getenv("TRUST_PROXY"))) {

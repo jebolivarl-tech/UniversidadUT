@@ -12,27 +12,41 @@ import universidad.modelo.Seccion;
 
 public class SeccionDAOImpl implements SeccionDAO {
 
-    private static final String POR_ESTUDIANTE = """
-            SELECT DISTINCT s.* FROM secciones s
+    /** Cada sección se devuelve con el nombre del curso, el del periodo y sus cupos ya ocupados. */
+    private static final String BASE = """
+            SELECT s.id_seccion, s.id_curso, s.id_profesor, s.id_periodo, s.aula, s.cupo_maximo,
+                   c.nombre AS nombre_curso, p.nombre AS nombre_periodo,
+                   (SELECT COUNT(*) FROM matriculas m WHERE m.id_seccion = s.id_seccion) AS cupos_ocupados
+            FROM secciones s
             JOIN cursos c ON c.id_curso = s.id_curso
-            JOIN matriculas m ON m.id_curso = c.id_curso
+            JOIN periodos_academicos p ON p.id_periodo = s.id_periodo
+            """;
+
+    private static final String POR_ESTUDIANTE = """
+            SELECT DISTINCT s.id_seccion, s.id_curso, s.id_profesor, s.id_periodo, s.aula, s.cupo_maximo,
+                   c.nombre AS nombre_curso, p.nombre AS nombre_periodo,
+                   (SELECT COUNT(*) FROM matriculas m2 WHERE m2.id_seccion = s.id_seccion) AS cupos_ocupados
+            FROM secciones s
+            JOIN cursos c ON c.id_curso = s.id_curso
+            JOIN periodos_academicos p ON p.id_periodo = s.id_periodo
+            JOIN matriculas m ON m.id_seccion = s.id_seccion
             WHERE m.id_estudiante = ?
             ORDER BY s.id_periodo DESC, s.id_seccion
             """;
 
     @Override
     public List<Seccion> listarTodos() {
-        return consultar("SELECT * FROM secciones ORDER BY id_periodo DESC, id_seccion", null);
+        return consultar(BASE + " ORDER BY s.id_periodo DESC, s.id_seccion", null);
     }
 
     @Override
     public List<Seccion> listarPorProfesor(int idProfesor) {
-        return consultar("SELECT * FROM secciones WHERE id_profesor = ? ORDER BY id_periodo DESC, id_seccion", idProfesor);
+        return consultar(BASE + " WHERE s.id_profesor = ? ORDER BY s.id_periodo DESC, s.id_seccion", idProfesor);
     }
 
     @Override
     public List<Seccion> listarPorPeriodo(int idPeriodo) {
-        return consultar("SELECT * FROM secciones WHERE id_periodo = ? ORDER BY id_seccion", idPeriodo);
+        return consultar(BASE + " WHERE s.id_periodo = ? ORDER BY s.id_seccion", idPeriodo);
     }
 
     @Override
@@ -40,10 +54,31 @@ public class SeccionDAOImpl implements SeccionDAO {
         return consultar(POR_ESTUDIANTE, idEstudiante);
     }
 
+    /**
+     * Grupos que el estudiante podría inscribir: de su carrera, con el periodo abierto, sin tener ya
+     * una matrícula en ese curso y periodo (`uq_matricula`) y con cupo disponible. El tope de créditos
+     * lo filtra el servicio, que es donde están las reglas.
+     */
+    @Override
+    public List<Seccion> listarInscribiblesPara(int idEstudiante) {
+        String sql = BASE + """
+                 JOIN estudiantes e ON e.id_carrera = c.id_carrera
+                WHERE e.id_estudiante = ? AND p.estado = 'ACTIVO'
+                  AND NOT EXISTS (SELECT 1 FROM matriculas ya
+                                  WHERE ya.id_estudiante = e.id_estudiante
+                                    AND ya.id_curso = s.id_curso
+                                    AND ya.periodo = p.nombre)
+                  AND (SELECT COUNT(*) FROM matriculas ocupada
+                       WHERE ocupada.id_seccion = s.id_seccion) < s.cupo_maximo
+                ORDER BY c.nombre, s.id_seccion
+                """;
+        return consultar(sql, idEstudiante);
+    }
+
     @Override
     public Seccion leerPorId(int id) {
         try (Connection cx = Conexion.getConexion();
-             PreparedStatement ps = cx.prepareStatement("SELECT * FROM secciones WHERE id_seccion = ?")) {
+             PreparedStatement ps = cx.prepareStatement(BASE + " WHERE s.id_seccion = ?")) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? mapear(rs) : null;
@@ -123,6 +158,9 @@ public class SeccionDAOImpl implements SeccionDAO {
         s.setIdPeriodo(rs.getInt("id_periodo"));
         s.setAula(rs.getString("aula"));
         s.setCupoMaximo(rs.getInt("cupo_maximo"));
+        s.setNombreCurso(rs.getString("nombre_curso"));
+        s.setNombrePeriodo(rs.getString("nombre_periodo"));
+        s.setCuposOcupados(rs.getInt("cupos_ocupados"));
         return s;
     }
 }

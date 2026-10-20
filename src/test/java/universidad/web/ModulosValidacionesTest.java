@@ -59,12 +59,15 @@ class ModulosValidacionesTest {
         assertFalse(Validaciones.esSeccionValida(new Seccion(1, 1, 0, "A".repeat(51), 30)));
     }
 
+    /** El curso, el periodo y el estado los deriva la sección: el formulario solo trae estudiante y sección. */
     @Test
     void matriculas() {
-        assertTrue(Validaciones.esMatriculaValida(new Matricula(1, 1, "2026-1", null)));
-        assertTrue(Validaciones.esMatriculaValida(new Matricula(1, 1, "2026-1", 3.5)));
-        assertFalse(Validaciones.esMatriculaValida(new Matricula(1, 1, "2026-1", 5.1)));
-        assertFalse(Validaciones.esMatriculaValida(new Matricula(1, 1, " ", null)));
+        assertTrue(Validaciones.esMatriculaValida(matricula(1, 2, null)));
+        assertTrue(Validaciones.esMatriculaValida(matricula(1, 2, 3.5)));
+        assertFalse(Validaciones.esMatriculaValida(matricula(1, 2, 5.1)));
+        assertFalse(Validaciones.esMatriculaValida(matricula(0, 2, null)));
+        assertFalse(Validaciones.esMatriculaValida(matricula(1, 0, null)));
+        assertFalse(Validaciones.esMatriculaValida(matricula(1, 2, -0.1)));
     }
 
     @Test
@@ -111,6 +114,14 @@ class ModulosValidacionesTest {
         Cuenta cuenta = cuenta("ana", null, Sesion.ADMINISTRATIVO);
         assertTrue(Validaciones.esCuentaValida(cuenta, false));
         assertFalse(Validaciones.esCuentaValida(cuenta, true));
+    }
+
+    private static Matricula matricula(int estudiante, int seccion, Double nota) {
+        Matricula m = new Matricula();
+        m.setIdEstudiante(estudiante);
+        m.setIdSeccion(seccion);
+        m.setNota(nota);
+        return m;
     }
 
     private static Cuenta cuenta(String usuario, String clave, String rol) {

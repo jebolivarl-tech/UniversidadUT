@@ -44,6 +44,10 @@ import universidad.modelo.Matricula;
 import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Profesor;
 import universidad.modelo.Seccion;
+import universidad.servicio.ServicioAsistencias;
+import universidad.servicio.ServicioCalificaciones;
+import universidad.servicio.ServicioMatriculas;
+import universidad.servicio.ServicioSecciones;
 import universidad.swing.FormularioCRUD.Campo;
 import universidad.swing.FormularioCRUD.Definicion;
 import universidad.swing.FormularioCRUD.OptionItem;
@@ -98,6 +102,16 @@ public final class ModulosSwing {
     private final AsistenciaDAO asistencias = new AsistenciaDAOImpl();
     private final CalificacionDAO calificaciones = new CalificacionDAOImpl();
     private final UsuarioDAO usuarios = new UsuarioDAOImpl();
+
+    /** Las reglas académicas son las mismas de la API web: el escritorio no tiene una segunda versión. */
+    private final ServicioSecciones servicioSecciones =
+            new ServicioSecciones(secciones, cursos, profesores, periodos, matriculas, estudiantes);
+    private final ServicioMatriculas servicioMatriculas =
+            new ServicioMatriculas(estudiantes, cursos, secciones, periodos, matriculas, asistencias);
+    private final ServicioAsistencias servicioAsistencias =
+            new ServicioAsistencias(asistencias, estudiantes, secciones, matriculas, periodos);
+    private final ServicioCalificaciones servicioCalificaciones =
+            new ServicioCalificaciones(estudiantes, secciones, matriculas, asistencias, servicioMatriculas);
 
     private ModulosSwing(String rol, Integer idUsuario, Integer idEstudiante, Integer idProfesor) {
         this.rol = rol == null ? "" : rol.toUpperCase();
@@ -242,6 +256,7 @@ public final class ModulosSwing {
                     asegurar(carreras.leerPorId(c.getIdCarrera()) != null, "la carrera");
                     asegurar(profesores.leerPorId(c.getIdProfesor()) != null, "el profesor");
                 })
+                .antesEliminar(servicioSecciones::validarEliminacionDeCurso)
                 .valido(Validaciones::esCursoValido, "Revise el nombre y los créditos (1 a 10).")
                 .soloLectura(!esAdministrativo)
                 .construir());
@@ -258,17 +273,19 @@ public final class ModulosSwing {
                 .listado(listado)
                 .columna("ID", Seccion::getIdSeccion)
                 .columna("Curso", Seccion::getIdCurso)
+                .columna("Materia", Seccion::getNombreCurso)
                 .columna("Profesor", Seccion::getIdProfesor)
-                .columna("Periodo", Seccion::getIdPeriodo)
+                .columna("Periodo", Seccion::getNombrePeriodo)
                 .columna("Aula", Seccion::getAula)
-                .columna("Cupo", Seccion::getCupoMaximo)
+                .columna("Ocupación", s -> s.getCuposOcupados() + " / " + s.getCupoMaximo())
                 .campo(combo("Curso:", Seccion::getIdCurso, Seccion::setIdCurso, this::opcionesCursos))
                 .campo(combo("Profesor:", Seccion::getIdProfesor, Seccion::setIdProfesor, this::opcionesProfesores))
                 .campo(combo("Periodo:", Seccion::getIdPeriodo, Seccion::setIdPeriodo, this::opcionesPeriodos))
                 .campo(Campo.texto("Aula:", s -> texto(s.getAula()), Seccion::setAula))
                 .campo(Campo.texto("Cupo máximo:", s -> String.valueOf(s.getCupoMaximo()),
                         (s, v) -> s.setCupoMaximo(entero("el cupo máximo", v))))
-                .antesEscribir(this::validarSeccion)
+                .antesEscribir(servicioSecciones::preparar)
+                .antesEliminar(servicioSecciones::validarEliminacion)
                 .valido(Validaciones::esSeccionValida, "Revise el aula (hasta 50 caracteres) y el cupo (1 a 200).")
                 .soloLectura(!esAdministrativo)
                 .construir());
@@ -286,19 +303,19 @@ public final class ModulosSwing {
                 .columna("ID", Matricula::getIdMatricula)
                 .columna("Estudiante", Matricula::getIdEstudiante)
                 .columna("Curso", Matricula::getIdCurso)
+                .columna("Sección", Matricula::getIdSeccion)
                 .columna("Periodo", Matricula::getPeriodo)
                 .columna("Nota", Matricula::getNota)
+                .columna("Estado", Matricula::getEstado)
                 .campo(combo("Estudiante:", Matricula::getIdEstudiante, Matricula::setIdEstudiante,
                         this::opcionesEstudiantes))
-                .campo(combo("Curso:", Matricula::getIdCurso, Matricula::setIdCurso, this::opcionesCursos))
-                .campo(Campo.texto("Periodo (ej. 2026-1):", m -> texto(m.getPeriodo()), Matricula::setPeriodo))
+                .campo(combo("Sección (el curso y el periodo salen de aquí):",
+                        Matricula::getIdSeccion, Matricula::setIdSeccion, this::opcionesSecciones))
                 .campo(Campo.texto("Nota (opcional, 0.0 a 5.0):", m -> numero(m.getNota()),
                         (m, v) -> m.setNota(nota(v))))
-                .antesEscribir(m -> {
-                    asegurar(estudiantes.leerPorId(m.getIdEstudiante()) != null, "el estudiante");
-                    asegurar(cursos.leerPorId(m.getIdCurso()) != null, "el curso");
-                })
-                .valido(Validaciones::esMatriculaValida, "Revise el periodo (hasta 20 caracteres) y la nota (0.0 a 5.0).")
+                .antesEscribir(servicioMatriculas::preparar)
+                .valido(Validaciones::esMatriculaValida,
+                        "Estudiante, sección y una nota entre 0.0 y 5.0 (o vacía).")
                 .soloLectura(!esAdministrativo)
                 .construir());
     }
@@ -360,6 +377,7 @@ public final class ModulosSwing {
                 .campo(Campo.texto("Examen final (opcional):", c -> numero(c.getNotaExamenFinal()),
                         (c, v) -> c.setNotaExamenFinal(nota(v))))
                 .antesEscribir(this::validarCalificacion)
+                .despuesEscribir(servicioCalificaciones::propagarNotaDefinitiva)
                 .valido(Validaciones::esCalificacionValida,
                         "Escala institucional 0.0 a 5.0 y al menos una nota registrada.")
                 .soloLectura(esEstudiante)
@@ -451,36 +469,14 @@ public final class ModulosSwing {
 
     // ------------------------------------------------------------------ reglas de escritura
 
-    private void validarSeccion(Seccion seccion) {
-        asegurar(cursos.leerPorId(seccion.getIdCurso()) != null, "el curso");
-        asegurar(profesores.leerPorId(seccion.getIdProfesor()) != null, "el profesor");
-        asegurar(periodos.leerPorId(seccion.getIdPeriodo()) != null, "el periodo");
-        boolean aulaOcupada = secciones.listarPorPeriodo(seccion.getIdPeriodo()).stream()
-                .filter(otra -> otra.getIdCurso() == seccion.getIdCurso())
-                .anyMatch(otra -> texto(otra.getAula()).equalsIgnoreCase(texto(seccion.getAula()))
-                        && otra.getIdSeccion() != seccion.getIdSeccion());
-        if (aulaOcupada) {
-            throw new IllegalStateException("Esa aula ya está asignada al mismo curso en el mismo periodo.");
-        }
-    }
-
     private void validarAsistencia(Asistencia asistencia) {
-        asistencia.setEstado(texto(asistencia.getEstado()).toUpperCase());
-        asegurar(estudiantes.leerPorId(asistencia.getIdEstudiante()) != null, "el estudiante");
-        asegurar(secciones.leerPorId(asistencia.getIdSeccion()) != null, "la sección");
         asegurarSeccionEscribible(asistencia.getIdSeccion());
-        boolean repetida = asistencias.listarPorSeccionYFecha(asistencia.getIdSeccion(), asistencia.getFecha()).stream()
-                .anyMatch(otra -> otra.getIdEstudiante() == asistencia.getIdEstudiante()
-                        && otra.getIdAsistencia() != asistencia.getIdAsistencia());
-        if (repetida) {
-            throw new IllegalStateException("Ese estudiante ya tiene un registro de asistencia en esa fecha.");
-        }
+        servicioAsistencias.preparar(asistencia);
     }
 
     private void validarCalificacion(Calificacion calificacion) {
-        asegurar(estudiantes.leerPorId(calificacion.getIdEstudiante()) != null, "el estudiante");
-        asegurar(secciones.leerPorId(calificacion.getIdSeccion()) != null, "la sección");
         asegurarSeccionEscribible(calificacion.getIdSeccion());
+        servicioCalificaciones.preparar(calificacion);
     }
 
     /** El profesor solo registra asistencia y calificación en sus propias secciones. */
@@ -558,14 +554,9 @@ public final class ModulosSwing {
         return opciones(cursos.listarTodos(), Curso::getIdCurso, Curso::getNombre);
     }
 
+    /** El texto de cada sección incluye la materia, el aula, el periodo y la ocupación actual. */
     private List<OptionItem> opcionesSecciones() {
-        return opciones(secciones.listarTodos(), Seccion::getIdSeccion,
-                s -> "curso " + s.getIdCurso() + " · " + nombreDeCurso(s.getIdCurso()) + " · aula " + s.getAula());
-    }
-
-    private String nombreDeCurso(int idCurso) {
-        Curso curso = cursos.leerPorId(idCurso);
-        return curso == null ? "sin nombre" : curso.getNombre();
+        return opciones(secciones.listarTodos(), Seccion::getIdSeccion, Seccion::describir);
     }
 
     private List<OptionItem> opcionesCreditos() {
