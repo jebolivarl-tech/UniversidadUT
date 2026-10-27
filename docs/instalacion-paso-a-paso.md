@@ -128,6 +128,22 @@ Las cuentas viajan con su hash (el formato `pbkdf2_sha256$iteraciones$salt$hash`
 `profesores`, `periodos_academicos` y `usuarios`; compruebe al final que no queda ninguna cuenta sin
 ficha, que es lo que rechaza `Validaciones.esCuentaValida`.
 
+**Paso final: volcar la base adaptada sobre `universidad`.** Es lo que hace que la web muestre ya los
+datos del grupo, porque `DB_URL` apunta a `universidad`. Respalde primero y cargue después; el volcado
+no lleva `CREATE DATABASE` ni `USE`, así que el destino lo fija el `-D` del cliente:
+
+```bash
+mysqldump -u root --single-transaction --routines --triggers --databases universidad \
+  > respaldo-universidad-antes-del-volcado.sql      # 1. respaldo, compruebe que trae las 11 tablas
+mysqldump -u root --single-transaction --routines --triggers universidad_companero \
+  | mysql -u root -D universidad                    # 2. sustituye las 11 tablas por las adaptadas
+sed -E '/^USE /d' db/seed/comprobar-demo.sql | mysql -u root -D universidad -t   # 3. vacío = correcto
+```
+
+Para deshacer: `mysql -u root < respaldo-universidad-antes-del-volcado.sql`. MySQL no tiene
+`RENAME DATABASE`, por eso el intercambio se hace con volcado y carga, y conviene dejar
+`universidad_companero` intacta hasta revisar la web con las cuentas reales.
+
 ## 3. Datos de demostración (opcional)
 
 Para ver el sistema funcionando sin cargar registros uno por uno:

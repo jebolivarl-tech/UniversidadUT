@@ -49,7 +49,9 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
   `db/seed/comprobar-demo.sql`. Se niega a escribir sobre la base real `universidad` salvo `FORZAR=1`,
   porque el archivo del compañero trae `DROP TABLE` delante de cada tabla.
 - La guía de instalación trae el apartado *Si le llega el `universidad.sql` de un compañero*, con el
-  comando listo y la manera de heredar los registros del equipo sin que choquen los ids.
+  comando listo y la manera de heredar los registros del equipo sin que choquen los ids. Como MySQL no
+  tiene `RENAME DATABASE`, el cierre del apartado deja el intercambio con las once tablas de
+  `universidad`: respaldo previo, `mysqldump | mysql -D universidad`, y `comprobar-demo.sql` vacío al final.
 
 ### Cambiado
 
