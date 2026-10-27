@@ -87,6 +87,47 @@ archivo desde el paso que falló. Al terminar, compruebe el resultado:
 mysql -u root -p < db/seed/comprobar-demo.sql   # cambie el USE a su base si no es `universidad`
 ```
 
+### Si le llega el `universidad.sql` de un compañero
+
+Un `mysqldump` ajeno llega con su propio `CREATE DATABASE universidad` y con `DROP TABLE` delante de
+cada tabla: ejecutarlo tal cual sobre su equipo **borra la base que ya tiene**. Además suele venir del
+esquema antiguo (`matriculas` sin `id_seccion`, `usuarios` con `id_referencia` y el rol
+`ADMINISTRADOR`, y tablas sueltas tipo `libro1` traídas de un Excel).
+
+Súbalo a una base aparte y déjelo listo de una sola pasada:
+
+```bash
+MYSQL_BIN="/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" \
+  bash scripts/adaptar-base-del-companero.sh ~/Downloads/universidad.sql universidad_companero root su-clave
+```
+
+El guion quita las líneas que apuntan a `universidad`, crea la base destino, carga el volcado y aplica
+`001` → `002` → `003_dump_de_un_companero.sql` (las once tablas y la forma actual de `usuarios`) →
+`004_normalizar_datos_herados.sql` (la matrícula que falta donde hay notas, la definitiva de dos
+decimales y el estado derivado de asistencia y nota). Termina con `comprobar-demo.sql`: sobre un volcado
+adaptado debe salir **vacío**; si queda alguna matrícula de un curso que no es de la carrera del
+estudiante, es histórico y lo revisa el administrativo desde la web.
+
+Después, o se trabaja contra esa base (ponga su `DB_URL` en `application-local.properties`, paso 4) o se
+pasan sus registros a la del grupo. En el segundo caso, los ids del volcado y los de su base chocan:
+lo ordenado es heredar hacia la base adaptada, desplazando sus ids (`id + 100`) y emparejando carreras y
+facultades por nombre, como hace este bloque:
+
+```sql
+INSERT INTO universidad_companero.estudiantes
+      (id_estudiante, nombre, apellido, email, fecha_nacimiento, id_carrera)
+SELECT 100 + e.id_estudiante, e.nombre, e.apellido, e.email, e.fecha_nacimiento, c.id_carrera
+  FROM universidad.estudiantes e
+  JOIN universidad.carreras oc          ON oc.id_carrera = e.id_carrera
+  JOIN universidad_companero.carreras c ON c.nombre = oc.nombre
+ WHERE NOT EXISTS (SELECT 1 FROM universidad_companero.estudiantes t WHERE t.email = e.email);
+```
+
+Las cuentas viajan con su hash (el formato `pbkdf2_sha256$iteraciones$salt$hash` es el mismo que lee
+`PasswordHasher`), así que cada persona sigue entrando con la clave que ya tenía. Repita el bloque con
+`profesores`, `periodos_academicos` y `usuarios`; compruebe al final que no queda ninguna cuenta sin
+ficha, que es lo que rechaza `Validaciones.esCuentaValida`.
+
 ## 3. Datos de demostración (opcional)
 
 Para ver el sistema funcionando sin cargar registros uno por uno:

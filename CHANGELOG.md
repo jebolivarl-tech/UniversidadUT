@@ -39,6 +39,17 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
 - `universidad.conexion.Config`: un solo lugar lee variable de entorno y, si falta,
   `application-local.properties`. De ahí salen `PORT`, `COOKIE_SECURE`, `TRUST_PROXY`, `CORS_ORIGINS` y
   las claves de la base, así que `run-app.bat`, el servidor y el navegador hablan del mismo puerto.
+- `db/migrations/003_dump_de_un_companero.sql` y `004_normalizar_datos_herados.sql`: un `mysqldump` de
+  otra base llega con el esquema anterior (matrícula sin sección, `usuarios` con `id_referencia` y el rol
+  `ADMINISTRADOR`, tablas sueltas tipo `libro1`) y con notas escritas a mano en un decimal. 003 deja la
+  estructura como la del proyecto; 004 completa la matrícula que falta donde ya hay calificación,
+  sincroniza la definitiva con el promedio y deriva el estado con la regla de asistencia y nota.
+- `scripts/adaptar-base-del-companero.sh`: carga ese volcado en una base aparte (por defecto
+  `universidad_companero`) quitándole su `CREATE DATABASE`/`USE`, aplica 001 → 004 y cierra con
+  `db/seed/comprobar-demo.sql`. Se niega a escribir sobre la base real `universidad` salvo `FORZAR=1`,
+  porque el archivo del compañero trae `DROP TABLE` delante de cada tabla.
+- La guía de instalación trae el apartado *Si le llega el `universidad.sql` de un compañero*, con el
+  comando listo y la manera de heredar los registros del equipo sin que choquen los ids.
 
 ### Cambiado
 

@@ -225,12 +225,15 @@ src/main/resources/public/
 db/init/01-schema.sql                               esquema completo, de cero
 db/migrations/001_seguridad_y_fk.sql                claves foráneas y permisos sobre una base existente
 db/migrations/002_reglas_academicas.sql             sección en la matrícula y restricciones de las reglas
+db/migrations/003_dump_de_un_companero.sql          tablas sueltas y `usuarios` de un volcado ajeno
+db/migrations/004_normalizar_datos_herados.sql      matrículas, notas y estados heredados de otra base
 db/seed/datos-demo.sql                              datos de demostración
 db/seed/comprobar-demo.sql                          las reglas repetidas en SQL, para validar la base
 tablas-MySql/                                       volcado de una tabla por archivo (la base original)
 scripts/preparar-base-pruebas.sh                     base de pruebas universidad_e2e + sus tres cuentas
 scripts/verificar-api-e2e.sh                         202 comprobaciones de la API contra esa base
 scripts/verificar-migracion.sh                       ensayo completo de 001 + 002 sobre una base de pruebas
+scripts/adaptar-base-del-companero.sh                carga un .sql ajeno en otra base y le aplica 001 a 004
 docs/                                               instalación, reglas de negocio y arquitectura
 instalar-pc.bat                                     monta el proyecto en un PC nuevo (pasos 1 a 6)
 run-app.bat                                         arranca la interfaz web con las credenciales locales
