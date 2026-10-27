@@ -37,7 +37,7 @@ public final class CrudController<T> {
         this.tipo = tipo;
         this.ruta = ruta;
         this.nombreEntidad = nombreEntidad;
-        this.listado = ctx -> dao.listarTodos();
+        this.listado = ctx -> dao.listarTodos(); // sin filtro definido, la lista completa es la respuesta correcta
     }
 
     public CrudController<T> listado(Function<Context, List<T>> listado) {

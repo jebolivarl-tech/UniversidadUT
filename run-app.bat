@@ -3,7 +3,7 @@ chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
-REM Arranca la interfaz web en http://localhost:8080 usando el MySQL de este equipo.
+REM Arranca la interfaz web en el puerto de PORT (8080 si no esta definido) usando el MySQL de este equipo.
 REM Credenciales: src/main/resources/application-local.properties (ver application-local.properties.example)
 REM o variables de entorno DB_USER y DB_PASSWORD, que tienen prioridad.
 
@@ -32,9 +32,9 @@ echo Construyendo target\app.jar ...
 call mvn -B clean package -DskipTests || exit /b 1
 
 :arrancar
-
 echo =====================================================
-echo Iniciando UniversidadDao en http://localhost:8080
+echo Iniciando UniversidadDao. La direccion exacta la imprime la aplicacion
+echo (usa el puerto de la variable de entorno o clave PORT; por defecto 8080).
 echo =====================================================
 java -jar target\app.jar
 endlocal

@@ -4,15 +4,14 @@ public class Usuario {
     private int idUsuario;
     private String username;
     private String password;
-    private String rol; // 'ADMINISTRATIVO', 'ESTUDIANTE', 'PROFESOR'
-    private Integer idEstudiante; // Usamos Integer (objeto) para permitir valores NULL
-    private Integer idProfesor;   // Usamos Integer (objeto) para permitir valores NULL
+    private String rol;
+    // Integer, no int: una cuenta ADMINISTRATIVO no tiene ficha académica que vincular.
+    private Integer idEstudiante;
+    private Integer idProfesor;
     private boolean estado;
 
-    // Constructor vacío
     public Usuario() {}
 
-    // Getters y Setters
     public int getIdUsuario() { return idUsuario; }
     public void setIdUsuario(int idUsuario) { this.idUsuario = idUsuario; }
 

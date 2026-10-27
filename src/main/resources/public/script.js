@@ -1,3 +1,5 @@
+// Las páginas se sirven desde el propio servidor, así que el origen de la página ya es la API.
+// El único caso aparte es abrirlas con file:// desde el disco, donde no hay origen que reutilizar.
 const API_BASE_URL = window.location.protocol === 'file:'
   ? 'http://localhost:8080'
   : window.location.origin;
@@ -23,7 +25,7 @@ async function responseError(response) {
 
 function connectionErrorMessage(error) {
   if (error instanceof TypeError) {
-    return 'No se pudo conectar con Java. Comprueba que el servidor esté activo en localhost:8080 y que CORS esté permitido.';
+    return `No se pudo conectar con Java. Comprueba que el servidor esté activo en ${API_BASE_URL.replace(/^https?:\/\//, '')} y que CORS esté permitido.`;
   }
   return error.message || 'Ocurrió un error inesperado.';
 }

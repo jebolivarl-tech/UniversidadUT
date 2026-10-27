@@ -61,7 +61,6 @@ public class EstudianteDAOImpl implements EstudianteDAO {
             ps.setInt(5, e.getIdCarrera());
             int filasAfectadas = ps.executeUpdate();
 
-            // Recuperamos el id que MySQL genero automaticamente y lo guardamos en el objeto
             try (ResultSet keys = ps.getGeneratedKeys()) {
                 if (keys.next()) {
                     e.setIdEstudiante(keys.getInt(1));
@@ -101,7 +100,6 @@ public class EstudianteDAOImpl implements EstudianteDAO {
         }
     }
 
-    // Metodo de apoyo: convierte una fila del ResultSet en un objeto Estudiante
     private Estudiante mapearEstudiante(ResultSet rs) throws SQLException {
         Estudiante e = new Estudiante();
         e.setIdEstudiante(rs.getInt("id_estudiante"));

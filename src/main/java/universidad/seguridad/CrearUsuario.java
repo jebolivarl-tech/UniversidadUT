@@ -71,7 +71,7 @@ public final class CrearUsuario {
                 return id;
             }
         } catch (NumberFormatException ignorado) {
-            // se resuelve con el mismo mensaje de uso
+            // un id ilegible y un id fuera de rango se resuelven con el mismo mensaje, el de abajo
         }
         System.err.println("El id de ficha debe ser un número entero positivo.");
         System.exit(1);

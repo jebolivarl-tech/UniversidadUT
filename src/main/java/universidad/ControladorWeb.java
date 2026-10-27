@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import org.eclipse.jetty.http.HttpCookie;
 import org.eclipse.jetty.server.session.SessionHandler;
+import universidad.conexion.Config;
 import universidad.dao.CarreraDAOImpl;
 import universidad.dao.EstudianteDAOImpl;
 import universidad.dao.UsuarioDAOImpl;
@@ -24,15 +25,15 @@ import universidad.web.Sesion;
 /**
  * Punto de entrada del servidor web (Javalin).
  *
- * Variables de entorno: PORT, DB_URL, DB_USER, DB_PASSWORD, COOKIE_SECURE (true en producción con HTTPS),
- * CORS_ORIGINS (lista separada por comas; vacío = solo mismo origen), TRUST_PROXY (true detrás de un proxy propio).
+ * Se lee con universidad.conexion.Config: PORT, COOKIE_SECURE (true solo detrás de HTTPS propio),
+ * CORS_ORIGINS (lista separada por comas; vacío = solo el mismo origen) y las de la base de datos.
  */
 public class ControladorWeb {
 
     private static final int SESION_INACTIVIDAD_SEGUNDOS = 30 * 60;
 
     public static void main(String[] args) {
-        List<String> origenesPermitidos = leerOrigenesCors();
+        List<String> origenesPermitidos = Config.origenesCors();
 
         Javalin app = Javalin.create(config -> {
             config.jsonMapper(new universidad.web.MapeadorJson());
@@ -41,7 +42,8 @@ public class ControladorWeb {
                 sesiones.setHttpOnly(true);
                 sesiones.setSameSite(HttpCookie.SameSite.LAX);
                 sesiones.setMaxInactiveInterval(SESION_INACTIVIDAD_SEGUNDOS);
-                sesiones.getSessionCookieConfig().setSecure("true".equalsIgnoreCase(System.getenv("COOKIE_SECURE")));
+                // La cookie de sesión solo viaja cifrada; en localhost sin HTTPS queda en claro y hay que declararlo.
+                sesiones.getSessionCookieConfig().setSecure(Config.esVerdadero("COOKIE_SECURE"));
                 handler.setSessionHandler(sesiones);
             });
         });
@@ -68,7 +70,7 @@ public class ControladorWeb {
         modulos.registrar(app);
         modulos.controladorMiInformacion().registrar(app);
 
-        int port = Integer.parseInt(System.getenv().getOrDefault("PORT", "8080"));
+        int port = Config.puerto();
         Runtime.getRuntime().addShutdownHook(new Thread(universidad.conexion.Conexion::cerrar));
         app.start(port);
         System.out.println(">>> SERVIDOR ACTIVO EN http://localhost:" + port + " <<<");
@@ -182,13 +184,5 @@ public class ControladorWeb {
 
     static boolean esOrigenPermitido(String origin, List<String> permitidos) {
         return origin != null && permitidos.contains(origin);
-    }
-
-    static List<String> leerOrigenesCors() {
-        String valor = System.getenv("CORS_ORIGINS");
-        if (valor == null || valor.isBlank()) {
-            return List.of();
-        }
-        return Arrays.stream(valor.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList();
     }
 }

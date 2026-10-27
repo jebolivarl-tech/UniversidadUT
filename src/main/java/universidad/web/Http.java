@@ -2,6 +2,7 @@ package universidad.web;
 
 import io.javalin.http.Context;
 import java.sql.SQLException;
+import universidad.conexion.Config;
 
 /** Utilidades HTTP comunes a todos los controladores. */
 public final class Http {
@@ -61,7 +62,7 @@ public final class Http {
 
     /** IP del cliente. Solo confía en X-Forwarded-For si TRUST_PROXY=true (detrás de un proxy inverso propio). */
     public static String ipCliente(Context ctx) {
-        if ("true".equalsIgnoreCase(System.getenv("TRUST_PROXY"))) {
+        if (universidad.conexion.Config.esVerdadero("TRUST_PROXY")) {
             String reenviada = ctx.header("X-Forwarded-For");
             if (reenviada != null && !reenviada.isBlank()) {
                 return reenviada.split(",")[0].trim();

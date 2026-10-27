@@ -27,13 +27,9 @@ import universidad.dao.EstudianteDAOImpl;
 import universidad.modelo.Carrera;
 import universidad.modelo.Estudiante;
 
-/**
- * Registro y Catálogo de Estudiantes - Interfaz tipo dashboard
- * Proyecto: UniversidadDao (Apache NetBeans)
- */
+/** Ventana de escritorio del catálogo y registro de estudiantes, con tabla filtrable y KPIs. */
 public class EstudianteForm extends javax.swing.JFrame {
 
-    // ---- Paleta ----
     private static final Color AZUL = new Color(23, 37, 84);
     private static final Color AZUL_MEDIO = new Color(37, 68, 160);
     private static final Color AZUL_CLARO = new Color(226, 234, 252);
@@ -62,21 +58,17 @@ public class EstudianteForm extends javax.swing.JFrame {
     private final CarreraDAO carreraDAO = new CarreraDAOImpl();
     private final Map<Integer, String> nombresCarrera = new HashMap<>();
 
-    // Tabla
     private DefaultTableModel modeloTabla;
     private TableRowSorter<DefaultTableModel> sorter;
     private JTable tblEstudiantes;
     private JLabel lblContador;
 
-    // KPIs
     private JLabel kpiTotal, kpiCarreras, kpiVisibles, kpiEdad;
 
-    // Formulario
     private HintField txtId, txtNombre, txtApellido, txtEmail;
     private DatePicker dpFechaNacimiento;
     private JComboBox<Carrera> cbxCarreraForm;
 
-    // Filtros
     private HintField txtBuscar, txtDesde, txtHasta;
     private JComboBox<String> cbxBuscarEn;
     private JComboBox<Object> cbxFiltroCarrera;
@@ -88,9 +80,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }
 
-    // ==============================================================
-    // COMPONENTES PERSONALIZADOS
-    // ==============================================================
     /** Panel tipo tarjeta con esquinas redondeadas */
     static class Card extends JPanel {
         private final int arc;
@@ -195,9 +184,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         }
     }
 
-    // ==============================================================
-    // CONSTRUCCIÓN DE LA INTERFAZ
-    // ==============================================================
     private void initComponentsCustom() {
         setTitle("Sistema Académico - Gestión de Estudiantes");
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -440,7 +426,7 @@ public class EstudianteForm extends javax.swing.JFrame {
         card.setBorder(new EmptyBorder(14, 14, 10, 14));
         card.add(crearPanelFiltros(), BorderLayout.NORTH);
 
-        // La columna 6 (ID Carrera) queda oculta pero disponible en el modelo
+        // La columna 6 (IdCarrera) no se pinta: la tabla la usa para saber qué carrera guardar
         modeloTabla = new DefaultTableModel(
                 new Object[]{"ID", "NOMBRE", "APELLIDO", "CORREO", "F. NACIMIENTO", "CARRERA", "IdCarrera"}, 0) {
             @Override
@@ -589,9 +575,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         return pnl;
     }
 
-    // ==============================================================
-    // LÓGICA DE FILTRADO Y BÚSQUEDA
-    // ==============================================================
     private void aplicarFiltros() {
         final String texto = txtBuscar.getText().trim().toLowerCase();
         final int campo = cbxBuscarEn.getSelectedIndex(); // 0=todos,1=ID,2=Nombre,3=Apellido,4=Correo
@@ -686,9 +669,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         kpiEdad.setText(n == 0 ? "-" : String.format("%.1f años", suma / (double) n));
     }
 
-    // ==============================================================
-    // CARGA DE DATOS DESDE DAO
-    // ==============================================================
     private void cargarComboCarreras() {
         try {
             cbxCarreraForm.removeAllItems();
@@ -745,9 +725,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         }
     }
 
-    // ==============================================================
-    // OPERACIONES CRUD CON TU DAO
-    // ==============================================================
     private void accionGuardar() {
         try {
             String nom = txtNombre.getText().trim();

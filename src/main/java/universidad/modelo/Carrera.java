@@ -5,23 +5,20 @@ public class Carrera {
     private String nombre;
     private int idFacultad;
 
-    // Constructor vacío
     public Carrera() {}
 
-    // Constructor completo
     public Carrera(int idCarrera, String nombre, int idFacultad) {
         this.idCarrera = idCarrera;
         this.nombre = nombre;
         this.idFacultad = idFacultad;
     }
 
-    // Constructor sin ID (Para registrar nuevas carreras)
+    /** Alta: el id lo pone la base de datos. */
     public Carrera(String nombre, int idFacultad) {
         this.nombre = nombre;
         this.idFacultad = idFacultad;
     }
 
-    // Getters y Setters
     public int getIdCarrera() { return idCarrera; }
     public void setIdCarrera(int idCarrera) { this.idCarrera = idCarrera; }
 
@@ -31,7 +28,7 @@ public class Carrera {
     public int getIdFacultad() { return idFacultad; }
     public void setIdFacultad(int idFacultad) { this.idFacultad = idFacultad; }
 
-    // Necesario para que los combos muestren el nombre de la carrera
+    /** Los combos de Swing y de la web muestran la entidad con toString(); sin esto saldría la clase. */
     @Override
     public String toString() {
         return nombre;

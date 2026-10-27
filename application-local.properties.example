@@ -5,3 +5,10 @@
 DB_URL=jdbc:mysql://localhost:3306/universidad
 DB_USER=su-usuario
 DB_PASSWORD=su-clave
+
+# Todo lo que sigue es opcional; si no lo escribe, la aplicación usa el valor por defecto.
+# DB_POOL_SIZE=10       conexiones simultaneas del pool de HikariCP
+# PORT=8080             puerto del servidor web; cambielo si otro programa lo tiene ocupado
+# COOKIE_SECURE=false   solo true cuando hay HTTPS delante
+# TRUST_PROXY=false     solo true si la app esta detras de un proxy inverso propio
+# CORS_ORIGINS=         vacio = solo el mismo origen; separados por coma si abre otro origen

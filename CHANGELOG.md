@@ -36,6 +36,9 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
   crea la base, ofrece la semilla, escribe `application-local.properties`, crea la cuenta
   `ADMINISTRATIVO` y termina con `mvn clean package`. Nunca borra una base existente sin preguntarlo y
   admite gobernarlo por variables de entorno para repetirlo en varios equipos.
+- `universidad.conexion.Config`: un solo lugar lee variable de entorno y, si falta,
+  `application-local.properties`. De ahí salen `PORT`, `COOKIE_SECURE`, `TRUST_PROXY`, `CORS_ORIGINS` y
+  las claves de la base, así que `run-app.bat`, el servidor y el navegador hablan del mismo puerto.
 
 ### Cambiado
 
@@ -76,6 +79,14 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
 - `application-local.properties.example` llevaba la contraseña real del equipo de desarrollo; ahora son
   marcadores, coherente con la regla de no subir credenciales. `run-app.bat` ya no depende de que `mvn`
   esté en el `PATH`: remite a `instalar-pc.bat`, que sí lo busca.
+- El aviso de arranque, el mensaje de error de conexión del navegador y el pie de `login.html` fijaban
+  `localhost:8080` aunque `PORT` cambiara el puerto real; ahora el servidor usa el puerto configurado y
+  la web muestra el origen por el que la están sirviendo. `instalar-pc.bat` respeta `PORT` al decir qué
+  dirección abrir.
+- Comentarios que repetían el código o decían cosas falsas (`// Getters y Setters`, `// Constructor
+  vacío`, los banners de secciones, el «Apache NetBeans» de una ventana hecha a mano en
+  `EstudianteForm`) fuera de `CarreraForm`, `EstudianteForm`, los modelos y los DAO; los que se quedan
+  explican por qué, no qué.
 
 ### Eliminado
 

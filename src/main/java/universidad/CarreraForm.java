@@ -9,11 +9,9 @@ import universidad.modelo.Carrera;
 
 public class CarreraForm extends javax.swing.JFrame {
 
-    // 1. Modelo de la interfaz gráfica
     private DefaultTableModel modeloTabla;
     private final CarreraDAO carreraDAO = new CarreraDAOImpl();
 
-    // 2. Componentes visuales declarados manualmente
     private javax.swing.JLabel lblNombre, lblIdFacultad;
     private javax.swing.JTextField txtNombre, txtIdFacultad;
     private javax.swing.JButton btnRegistrar, btnActualizar, btnEliminar;
@@ -21,18 +19,19 @@ public class CarreraForm extends javax.swing.JFrame {
     private javax.swing.JScrollPane scrollTabla;
 
     public CarreraForm() {
-        construirVentana();    // Diseña la interfaz manualmente en coordenadas exactas
-        inicializarTabla();    // Configura la JTable con sus columnas
-        listarEnTablaDirecto(); // Carga de forma autónoma las carreras desde MySQL
+        construirVentana();
+        inicializarTabla();
+        listarEnTablaDirecto();
     }
 
     private void construirVentana() {
         this.setTitle("Sistema Académico - Gestión de Carreras");
         this.setSize(750, 600);
-        this.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE); // Cierra solo esta ventana
-        this.getContentPane().setLayout(null); // Layout absoluto libre de bloqueos
+        // DISPOSE_ON_CLOSE y no EXIT_ON_CLOSE: al cerrar carreras no se debe apagar el login abierto.
+        this.setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
+        // Sin gestor de layout: los setBounds() de abajo ponen cada componente en coordenadas fijas.
+        this.getContentPane().setLayout(null);
 
-        // --- Etiquetas (Labels) ---
         lblNombre = new javax.swing.JLabel("Nombre de Carrera:");
         lblNombre.setBounds(30, 30, 150, 25);
         this.getContentPane().add(lblNombre);
@@ -41,7 +40,6 @@ public class CarreraForm extends javax.swing.JFrame {
         lblIdFacultad.setBounds(30, 70, 100, 25);
         this.getContentPane().add(lblIdFacultad);
 
-        // --- Cajas de Texto (TextFields) ---
         txtNombre = new javax.swing.JTextField();
         txtNombre.setBounds(180, 30, 200, 25);
         this.getContentPane().add(txtNombre);
@@ -50,7 +48,6 @@ public class CarreraForm extends javax.swing.JFrame {
         txtIdFacultad.setBounds(180, 70, 200, 25);
         this.getContentPane().add(txtIdFacultad);
 
-        // --- Botones ---
         btnRegistrar = new javax.swing.JButton("Registrar");
         btnRegistrar.setBounds(420, 30, 120, 30);
         btnRegistrar.addActionListener(evt -> btnRegistrarActionPerformed(evt));
@@ -66,7 +63,6 @@ public class CarreraForm extends javax.swing.JFrame {
         btnEliminar.addActionListener(evt -> btnEliminarActionPerformed(evt));
         this.getContentPane().add(btnEliminar);
 
-        // --- Tabla ---
         tablaCarreras = new javax.swing.JTable();
         tablaCarreras.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -111,8 +107,6 @@ public class CarreraForm extends javax.swing.JFrame {
         txtNombre.setText("");
         txtIdFacultad.setText("");
     }
-
-    // --- ACCIONES DE LOS BOTONES (EVENTOS DIRECTOS) ---
 
     private void btnRegistrarActionPerformed(java.awt.event.ActionEvent evt) {                                             
         try {

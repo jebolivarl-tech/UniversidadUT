@@ -28,7 +28,8 @@ call :compilar               || exit /b 1
 echo.
 echo ============================================================
 echo  Listo. Para arrancar:  run-app.bat   (o  java -jar target\app.jar)
-echo  Abra  http://localhost:8080/login.html
+if not defined PORT set "PORT=8080"
+echo  Abra  http://localhost:%PORT%/login.html
 if defined ADMIN_USUARIO echo  Entre con el usuario  !ADMIN_USUARIO!
 echo.
 echo  Alta de un profesor o un estudiante, cuando la necesite:
