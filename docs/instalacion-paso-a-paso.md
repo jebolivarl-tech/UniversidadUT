@@ -51,6 +51,17 @@ cd UniversidadDao
 
 Si prefiere el ZIP, descomprímalo y entre en la carpeta `UniversidadDao-corregido`.
 
+### Y si lo abren en VS Code
+
+El que compila y ejecuta es Maven, no el IDE: los comandos de esta guía son los mismos desde la terminal
+integrada de VS Code que desde `cmd`. Con `Extension Pack for Java`, VS Code baja su propio Maven a
+`%USERPROFILE%\.m2\wrapper\...\bin\mvn.cmd`, y `instalar-pc.bat` busca también ahí, así que no hace falta
+añadir nada al `PATH`.
+
+Mientras no hayan compilado, el editor marcará en rojo los `import` de Javalin, `mysql-connector-j` o
+`AbsoluteLayout`: no es un error del código, es que `~/.m2` todavía no tiene las dependencias. Se resuelve
+con `instalar-pc.bat` o con `mvn clean package`.
+
 ## 2. Crear la base de datos
 
 **Opción A — base nueva (recomendado):** el esquema crea la base, las 11 tablas, las claves foráneas,
@@ -208,6 +219,7 @@ bash scripts/verificar-api-e2e.sh        # ultima línea: TODO OK
 | `ClassNotFoundException: universidad.seguridad.CrearUsuario` | `exec:java` no compila. Use `mvn -q compile exec:java ...` (paso 5) o construya antes. |
 | `Cannot access central ... in offline mode` | Primer build con `-o`. Baje las dependencias una vez sin `-o`; luego `-o` funciona. |
 | `mvn` descarga de internet y falla | Use `-o` (offline) una vez que las dependencias ya están en `~/.m2`. |
+| `instalar-pc.bat` dice `[FALTA] Maven en el PATH` | Su Maven no está en las carpetas de siempre. Los `Extension Pack for Java` de VS Code lo guardan dentro de `%USERPROFILE%\.m2\wrapper\...\bin\mvn.cmd` (el instalador lo busca ahí); si aun así no lo encuentra, dígasle la ruta: `set "MAVEN_BIN=C:\ruta\bin\mvn.cmd"` y vuelva a ejecutar el guion. |
 | No puede borrar una sección | Regla: tiene matrículas. Retírelas primero (409 lo explica). |
 | No puede borrar un curso | Regla: sus grupos aún tienen matrículas; la base lo borraría en cascada, así que el servicio lo corta con 409. |
 | Un estudiante no puede inscribirse | Periodo no `ACTIVO`, curso de otra carrera, sin cupo o el tope de 20 créditos. |

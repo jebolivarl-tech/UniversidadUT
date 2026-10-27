@@ -66,6 +66,12 @@ if defined M2_HOME (
 for %%d in ("%USERPROFILE%\tools\apache-maven-3.9.16\bin\mvn.cmd" "%LOCALAPPDATA%\Programs\apache-maven\bin\mvn.cmd" "C:\Program Files\apache-maven-3.9.16\bin\mvn.cmd" "C:\Program Files\apache-maven-3.9.9\bin\mvn.cmd" "C:\maven\bin\mvn.cmd" "%LOCALAPPDATA%\Code\User\globalStorage\pleiades.java-extension-pack-jdk\maven\latest\bin\mvn.cmd") do (
   if exist %%d set "MVN=%%~d"
 )
+if defined MVN exit /b 0
+REM El Maven que baja Extension Pack for Java de VS Code vive en .m2\wrapper, dentro de una carpeta con
+REM hash en el nombre: no se puede escribir la ruta literal, asi que se busca.
+for /d /r "%USERPROFILE%\.m2\wrapper" %%d in (apache-maven-*) do (
+  if not defined MVN if exist "%%~d\bin\mvn.cmd" set "MVN=%%~d\bin\mvn.cmd"
+)
 exit /b 0
 
 :comprobar_herramientas
@@ -84,7 +90,8 @@ if not defined MVN (
   echo         o indique donde lo tiene:
   echo           set "MAVEN_BIN=C:\Program Files\apache-maven-3.9.16\bin\mvn.cmd"
   echo           instalar-pc.bat
-  echo         Si solo lo trae su IDE, tambien sirve la terminal de ese IDE.
+  echo         Si solo lo trae su IDE, tambien sirve la terminal de ese IDE. Extension Pack for Java de
+  echo         VS Code tambien sirve: el guion lo busca en .m2\wrapper.
   exit /b 1
 )
 call "%MVN%" -v >"%OUT%" 2>&1

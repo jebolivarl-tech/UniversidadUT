@@ -7,8 +7,9 @@ navegador, ni versiones sin servidor.
 ## Requisitos
 
 - JDK 17 o superior (cualquiera: 17, 21 o 26; el `pom.xml` fija `--release 17`)
-- Maven 3.8+ visible en la consola (`mvn -v`). Si solo lo trae su IDE, añada su carpeta `bin` al `PATH`
-  o abra la terminal dentro del propio IDE.
+- Maven 3.8+ visible en la consola (`mvn -v`). Si solo lo trae su IDE, añada su carpeta `bin` al `PATH`,
+  abra la terminal dentro del propio IDE, o use `instalar-pc.bat`, que también busca el Maven que
+  `Extension Pack for Java` de VS Code deja en `%USERPROFILE%\.m2\wrapper`.
 - MySQL **8.0.16 o superior** corriendo en `localhost:3306` con la base `universidad`. El esquema usa la
   colación `utf8mb4_0900_ai_ci` y restricciones `CHECK`: MySQL 5.7 y MariaDB rechazan ese archivo.
 - Internet para el primer build: Maven baja unas 52 MB de dependencias. Después ya se puede trabajar sin

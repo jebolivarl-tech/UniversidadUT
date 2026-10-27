@@ -83,6 +83,10 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
   `localhost:8080` aunque `PORT` cambiara el puerto real; ahora el servidor usa el puerto configurado y
   la web muestra el origen por el que la están sirviendo. `instalar-pc.bat` respeta `PORT` al decir qué
   dirección abrir.
+- `instalar-pc.bat` no encontraba el Maven que `Extension Pack for Java` de VS Code baja dentro de
+  `%USERPROFILE%\.m2\wrapper` (carpeta con hash en el nombre): ahora lo busca ahí y un compañero no tiene
+  que añadir nada al `PATH`. La guía tiene apartado nuevo de «y si lo abren en VS Code» y una fila más en
+  problemas frecuentes.
 - Comentarios que repetían el código o decían cosas falsas (`// Getters y Setters`, `// Constructor
   vacío`, los banners de secciones, el «Apache NetBeans» de una ventana hecha a mano en
   `EstudianteForm`) fuera de `CarreraForm`, `EstudianteForm`, los modelos y los DAO; los que se quedan
