@@ -3,7 +3,7 @@
 Formato de [Mantener un CHANGELOG](https://keepachangelog.com/es-ES/1.1.0/); las versiones van por fecha
 porque el proyecto lo sostienen tres personas en una clase, no un pipeline de releases.
 
-## [Sin publicar] — 2026-10-19
+## [Sin publicar] — 2026-10-26
 
 ### Añadido
 
@@ -31,6 +31,11 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
   (`inscribiblesDe` en la configuración del módulo): la lista ya no es el catálogo completo de secciones.
 - Documentación: `docs/reglas-de-negocio.md`, `docs/arquitectura.md`,
   `docs/instalacion-paso-a-paso.md` y este archivo.
+- `instalar-pc.bat`: monta el proyecto en un PC nuevo de una sola pasada. Comprueba JDK, Maven (también
+  donde lo dejan los IDEs) y `mysql.exe`, verifica que la versión de MySQL admita `utf8mb4_0900_ai_ci`,
+  crea la base, ofrece la semilla, escribe `application-local.properties`, crea la cuenta
+  `ADMINISTRATIVO` y termina con `mvn clean package`. Nunca borra una base existente sin preguntarlo y
+  admite gobernarlo por variables de entorno para repetirlo en varios equipos.
 
 ### Cambiado
 
@@ -63,6 +68,14 @@ porque el proyecto lo sostienen tres personas en una clase, no un pipeline de re
   la misma sección en lugar del mismo curso y periodo (`uq_matricula`) e ignoraba los grupos llenos y
   el tope de 20 créditos. Ahora solo ofrece lo que el estudiante puede inscribir, y el servicio lo
   refuerza con el mensaje «El estudiante ya cursa «Cálculo» en 2026-2…».
+- La guía de instalación no funcionaba en un PC recién montado: mandaba `mvn -q -o exec:java` antes del
+  primer build (`No plugin found for prefix 'exec'`) y `exec:java` a secas (`CrearUsuario` sin
+  `target/classes`). Ahora los comandos llevan `compile` delante, van sin `-o`, y la guía fija MySQL
+  8.0.16+, el `PATH` de Windows y la descarga de ~52 MB del primer build. `db/seed/datos-demo.sql` decía
+  que él creaba las cuentas de acceso: no las crea, `usuarios` queda vacía hasta ejecutar `CrearUsuario`.
+- `application-local.properties.example` llevaba la contraseña real del equipo de desarrollo; ahora son
+  marcadores, coherente con la regla de no subir credenciales. `run-app.bat` ya no depende de que `mvn`
+  esté en el `PATH`: remite a `instalar-pc.bat`, que sí lo busca.
 
 ### Eliminado
 

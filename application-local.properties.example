@@ -1,5 +1,7 @@
 # Copie este archivo a src/main/resources/application-local.properties (o a la raíz del proyecto como application-local.properties) y edítelo.
 # Este archivo no se sube a git ni entra en la imagen Docker. En producción use variables de entorno.
+# Ponga el usuario y la contraseña con los que USTED entra a su MySQL de localhost. No escriba aquí la
+# contraseña de otro equipo: esta plantilla sí viaja en el repositorio.
 DB_URL=jdbc:mysql://localhost:3306/universidad
-DB_USER=root
-DB_PASSWORD=root
+DB_USER=su-usuario
+DB_PASSWORD=su-clave

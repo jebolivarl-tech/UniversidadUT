@@ -6,11 +6,17 @@ navegador, ni versiones sin servidor.
 
 ## Requisitos
 
-- JDK 17 o superior
-- Maven 3.8+
-- MySQL 8.x corriendo en `localhost:3306` con la base `universidad`
+- JDK 17 o superior (cualquiera: 17, 21 o 26; el `pom.xml` fija `--release 17`)
+- Maven 3.8+ visible en la consola (`mvn -v`). Si solo lo trae su IDE, añada su carpeta `bin` al `PATH`
+  o abra la terminal dentro del propio IDE.
+- MySQL **8.0.16 o superior** corriendo en `localhost:3306` con la base `universidad`. El esquema usa la
+  colación `utf8mb4_0900_ai_ci` y restricciones `CHECK`: MySQL 5.7 y MariaDB rechazan ese archivo.
+- Internet para el primer build: Maven baja unas 52 MB de dependencias. Después ya se puede trabajar sin
+  red con `-o`.
 
-¿Primera vez, o va a montar el proyecto un compañero? Empiece por
+¿Primera vez, o va a montar el proyecto un compañero? En Windows hay un atajo: **`instalar-pc.bat`** hace
+los pasos de abajo (comprueba JDK/Maven/MySQL, crea la base, escribe sus credenciales, genera su cuenta de
+acceso y compila). Si prefiere entender cada paso o trabaja en Linux/macOS, empiece por
 [`docs/instalacion-paso-a-paso.md`](docs/instalacion-paso-a-paso.md), que trae los comandos copiables y
 la tabla de problemas frecuentes. Las reglas académicas están en
 [`docs/reglas-de-negocio.md`](docs/reglas-de-negocio.md) y el mapa del código en
@@ -40,7 +46,9 @@ sobre una base de pruebas, sin tocar `universidad`.
 
 ### Credenciales
 
-Copie la plantilla y edite la contraseña de su MySQL. El archivo queda fuera de git:
+El clon **nunca trae contraseñas**: `application-local.properties` está en `.gitignore`, así que en su PC
+no existe y hay que crearlo. Copie la plantilla (en Windows use `copy` en lugar de `cp`) y escriba el
+usuario y la contraseña de su MySQL:
 
 ```bash
 cp application-local.properties.example src/main/resources/application-local.properties
@@ -54,21 +62,23 @@ También puede usar variables de entorno (`DB_URL`, `DB_USER`, `DB_PASSWORD`), q
 La base nace sin usuarios y las contraseñas se guardan con hash PBKDF2. El cuarto argumento es la ficha
 del rol: `id_estudiante` para un ESTUDIANTE, `id_profesor` para un PROFESOR, y se omite en ADMINISTRATIVO
 (la cuenta no administrativa sin ficha no la crea ni la consola, porque MySQL no permite expresar esa
-regla con un `CHECK` sobre columnas que tienen clave foránea):
+regla con un `CHECK` sobre columnas que tienen clave foránea). La contraseña mínima es de 10 caracteres
+(`seguridad/CrearUsuario.java:28`). Estos comandos llevan `compile` delante y van **sin `-o`**: en un PC
+nuevo todavía no existe `target/classes` y Maven necesita bajar el plugin `exec` de internet.
 
 ```bash
-mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
+mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
     -Dexec.args="admin UnaClaveDe10Caracteres ADMINISTRATIVO"
 
-mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
+mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
     -Dexec.args="profesor.cardozo OtraClaveLarga PROFESOR 1"    # id_profesor
-mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
+mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
     -Dexec.args="estudiante.rojas OtraClaveLarga ESTUDIANTE 1"  # id_estudiante
 ```
 
 Si tiene cuentas antiguas en texto plano, conviértalas con
-`mvn exec:java -Dexec.mainClass=universidad.seguridad.MigrarPasswords` (el login también migra la cuenta
-que usa una contraseña sin hash).
+`mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.MigrarPasswords` (el login también migra
+la cuenta que usa una contraseña sin hash).
 
 ## 2. Interfaz web
 
@@ -164,9 +174,10 @@ verificar la API contra una base real se usa un par de guiones, sobre `universid
 nunca `universidad`**:
 
 ```bash
-bash scripts/preparar-base-pruebas.sh              # esquema + semilla + tres cuentas de prueba
+MYSQL_BIN="/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" \
+  bash scripts/preparar-base-pruebas.sh su-usuario su-clave    # esquema + semilla + tres cuentas de prueba
 # en otra ventana, con el jar ya construido:
-DB_URL="jdbc:mysql://localhost:3306/universidad_e2e" DB_USER=root DB_PASSWORD=su-clave java -jar target/app.jar
+DB_URL="jdbc:mysql://localhost:3306/universidad_e2e" DB_USER=su-usuario DB_PASSWORD=su-clave java -jar target/app.jar
 bash scripts/verificar-api-e2e.sh                  # 202 comprobaciones; sale 0 con TODO OK
 ```
 
@@ -220,6 +231,8 @@ scripts/preparar-base-pruebas.sh                     base de pruebas universidad
 scripts/verificar-api-e2e.sh                         202 comprobaciones de la API contra esa base
 scripts/verificar-migracion.sh                       ensayo completo de 001 + 002 sobre una base de pruebas
 docs/                                               instalación, reglas de negocio y arquitectura
+instalar-pc.bat                                     monta el proyecto en un PC nuevo (pasos 1 a 6)
+run-app.bat                                         arranca la interfaz web con las credenciales locales
 CHANGELOG.md                                        qué cambió y en qué fecha
 ```
 

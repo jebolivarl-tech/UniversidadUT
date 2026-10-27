@@ -3,21 +3,44 @@
 Guía para montar el proyecto en un equipo desde cero. Está pensada para Windows, pero los comandos de
 Maven y MySQL son los mismos en Linux o macOS.
 
+## Camino corto: `instalar-pc.bat`
+
+En Windows, los pasos 2 a 6 de esta guía están automatizados en `instalar-pc.bat` (doble clic, o desde una
+consola dentro de la carpeta del proyecto). Comprueba JDK, Maven y `mysql.exe` —busca Maven también donde
+lo dejan los IDEs—, verifica que la versión de MySQL admita el esquema, crea la base `universidad`, ofrece
+la semilla de demostración, escribe `src/main/resources/application-local.properties` con las credenciales
+que usted conteste, crea su cuenta `ADMINISTRATIVO` y termina con `mvn clean package`. No borra una base
+que ya exista sin preguntarlo, y no sube nada a git.
+
+Se puede gobernar sin preguntas con variables de entorno (útil para repetirlo en varios equipos):
+`DB_NOMBRE`, `DB_USER`, `DB_PASSWORD`, `CARGAR_DEMO=S|N`, `CREAR_CUENTA=S|N`, `ADMIN_USUARIO`,
+`ADMIN_CLAVE`, y para las herramientas fuera del `PATH`, `MYSQL_BIN` y `MAVEN_BIN`.
+
+Si algo falla, el guion se detiene con el motivo y este documento explica el resto.
+
 ## 0. Qué necesita tener instalado
 
 | Herramienta | Versión mínima | Para qué |
 |---|---|---|
 | JDK | 17 | Compilar y ejecutar (el `pom.xml` fija `--release 17`). |
 | Maven | 3.8 | Construir el `target/app.jar`. |
-| MySQL | 8.0 | La base `universidad`, corriendo en `localhost:3306`. |
+| MySQL | **8.0.16** | La base `universidad`, corriendo en `localhost:3306`. |
 
-Verifique antes de empezar:
+Los tres tienen que verse desde la terminal. En Windows, si instaló el JDK o Maven desde un IDE, añada sus
+carpetas `bin` a la variable `PATH` (o trabaje desde la terminal de ese IDE). Compruebe:
 
 ```bash
 java -version    # openjdk 17 o superior
 mvn -v
 "C:/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" -u root -p -e "SELECT VERSION();"
 ```
+
+El requisito de MySQL no es un capricho: `db/init/01-schema.sql` usa la colación `utf8mb4_0900_ai_ci` y
+restricciones `CHECK`. MySQL 5.7 y MariaDB lo rechazan con `Unknown collation`; los `CHECK` además
+solo se aplican desde 8.0.16.
+
+Y necesitará **internet en el primer build**: Maven baja unas 52 MB de dependencias a `~/.m2`. Hasta que eso
+no esté en el equipo, no use `-o` (el paso 5 y el 6 lo explican).
 
 ## 1. Conseguir el código
 
@@ -67,7 +90,8 @@ el paso 5.
 
 ## 4. Credenciales de la base
 
-Copie la plantilla y escriba su contraseña local de MySQL. El archivo está en `.gitignore`:
+Al clonar, este archivo **no existe**: está en `.gitignore` y por eso nunca sube al repositorio. Copie la
+plantilla (en el CMD de Windows es `copy`, no `cp`) y escriba su contraseña local de MySQL:
 
 ```bash
 cp application-local.properties.example src/main/resources/application-local.properties
@@ -75,39 +99,49 @@ cp application-local.properties.example src/main/resources/application-local.pro
 
 ```properties
 DB_URL=jdbc:mysql://localhost:3306/universidad
-DB_USER=root
-DB_PASSWORD=la_suya
+DB_USER=su-usuario
+DB_PASSWORD=la-suya
 ```
 
-Las variables de entorno `DB_USER` y `DB_PASSWORD` tienen prioridad sobre el archivo, y `DB_POOL_SIZE`
-ajusta el tamaño del pool. **Nunca suba contraseñas al repositorio.**
+`DB_URL` es opcional (sin ella se usa la URL de arriba). Las variables de entorno `DB_USER` y `DB_PASSWORD`
+tienen prioridad sobre el archivo, y `DB_POOL_SIZE` ajusta el tamaño del pool. **Nunca suba contraseñas al
+repositorio.** Si omite este paso, `run-app.bat` avisa y sale sin intentar arrancar.
 
 ## 5. Primeras cuentas de acceso
 
-La base nace sin usuarios y las contraseñas se guardan con hash PBKDF2. El cuarto argumento es la ficha
-del rol: `id_estudiante` para ESTUDIANTE, `id_profesor` para PROFESOR, y se omite en ADMINISTRATIVO.
+La base nace **sin usuarios**: con el esquema y la semilla cargados todavía no hay con quién entrar, y las
+contraseñas se guardan con hash PBKDF2. El cuarto argumento es la ficha del rol: `id_estudiante` para
+ESTUDIANTE, `id_profesor` para PROFESOR, y se omite en ADMINISTRATIVO. La contraseña mínima son 10
+caracteres (`seguridad/CrearUsuario.java:28`).
+
+Estos comandos llevan `compile` delante y van **sin `-o`**: en un PC recién montado `target/classes` aún no
+existe (el goal `exec:java` no compila por su cuenta) y Maven todavía no tiene las dependencias en `~/.m2`.
 
 ```bash
-mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
+mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
     -Dexec.args="admin UnaClaveLarga123 ADMINISTRATIVO"
 
-mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
+mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
     -Dexec.args="profesor.cardozo OtraClaveLarga123 PROFESOR 1"
 
-mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
+mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario \
     -Dexec.args="estudiante.rojas ClaveDeAna2026 ESTUDIANTE 1"
 ```
 
 Si viene de una base antigua con contraseñas en texto plano:
-`mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.MigrarPasswords` (el primer login también
+`mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.MigrarPasswords` (el primer login también
 convierte la cuenta usada).
 
 ## 6. Compilar y probar
 
 ```bash
-mvn -o clean test       # 77 pruebas: reglas académicas, validaciones, sesión, JSON
-mvn -o clean package    # genera target/app.jar (levante el servidor antes si está ocupado)
+mvn clean test       # 77 pruebas: reglas académicas, validaciones, sesión, JSON
+mvn clean package    # genera target/app.jar; pare el servidor antes, o la JVM tiene el jar bloqueado
 ```
+
+Con las dependencias ya descargadas se puede trabajar sin red añadiendo `-o` (`mvn -o clean test`). El
+`AbsoluteLayout-SNAPSHOT.jar` que usa el `pom.xml` viene dentro del repositorio (`lib/`), así que no hay
+que buscarlo: Maven lo toma de ese repositorio local y solo imprime un aviso por su POM ausente.
 
 ## 7. Arrancar la interfaz web
 
@@ -149,11 +183,14 @@ Con el servidor levantado y la cuenta `admin`:
 Esta lista está automatizada: `scripts/preparar-base-pruebas.sh` monta la base de pruebas
 `universidad_e2e` (esquema + semilla + las cuentas `e2e_admin`, `e2e_prof` y `e2e_ana`) y
 `scripts/verificar-api-e2e.sh` recorre las 202 comprobaciones contra el servidor apuntado a ella, con
-prefijo `E2E` en todo lo que crea y borrándolo al final. **Ninguno de los dos toca `universidad`**:
+prefijo `E2E` en todo lo que crea y borrándolo al final. **Ninguno de los dos toca `universidad`**. Son
+guiones de `bash`: en Windows ejecútelos desde Git Bash (el de «Git for Windows») o desde la terminal WSL,
+no desde el CMD. No son obligatorios para usar el sistema: son la verificación del equipo.
 
 ```bash
-bash scripts/preparar-base-pruebas.sh root su-clave
-DB_URL="jdbc:mysql://localhost:3306/universidad_e2e" DB_USER=root DB_PASSWORD=su-clave java -jar target/app.jar
+MYSQL_BIN="/c/Program Files/MySQL/MySQL Server 8.0/bin/mysql.exe" \
+  bash scripts/preparar-base-pruebas.sh su-usuario su-clave
+DB_URL="jdbc:mysql://localhost:3306/universidad_e2e" DB_USER=su-usuario DB_PASSWORD=su-clave java -jar target/app.jar
 bash scripts/verificar-api-e2e.sh        # ultima línea: TODO OK
 ```
 
@@ -165,6 +202,11 @@ bash scripts/verificar-api-e2e.sh        # ultima línea: TODO OK
 | Tildes rotos en el navegador | Servir siempre con `servirTexto(...)` y no tocar `<meta charset="UTF-8">` de las páginas. |
 | `Access denied for user 'root'` | Contraseña equivocada en `application-local.properties` o en las variables de entorno. |
 | `Table 'universidad.xxx' doesn't exist` | Falta el esquema (paso 2) o las migraciones (paso 2B). |
+| `Unknown collation: 'utf8mb4_0900_ai_ci'` | MySQL 5.7 o MariaDB. El proyecto exige 8.0.16+ (vea el paso 0). |
+| El login rechaza todas las cuentas / `usuarios` sale vacía | La semilla no crea cuentas: hay que generarlas con el paso 5, que es lo que calcula el hash. |
+| `No plugin found for prefix 'exec'` con `-o` | PC recién montado: `~/.m2` está vacío. Ejecute el comando sin `-o` para que Maven baje el plugin. |
+| `ClassNotFoundException: universidad.seguridad.CrearUsuario` | `exec:java` no compila. Use `mvn -q compile exec:java ...` (paso 5) o construya antes. |
+| `Cannot access central ... in offline mode` | Primer build con `-o`. Baje las dependencias una vez sin `-o`; luego `-o` funciona. |
 | `mvn` descarga de internet y falla | Use `-o` (offline) una vez que las dependencias ya están en `~/.m2`. |
 | No puede borrar una sección | Regla: tiene matrículas. Retírelas primero (409 lo explica). |
 | No puede borrar un curso | Regla: sus grupos aún tienen matrículas; la base lo borraría en cascada, así que el servicio lo corta con 409. |

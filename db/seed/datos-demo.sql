@@ -5,7 +5,9 @@
 --
 -- Los nombres de facultades, carreras y cursos son de ejemplo: ajústelos a la malla real antes de
 -- mostrar el sistema. Los ids van explícitos para que las claves foráneas cuadren.
--- Las cuentas de acceso se crean al final del archivo, con su hash real.
+-- Este archivo NO inserta cuentas de acceso: al terminar la tabla `usuarios` queda vacía y todavía no se
+-- puede entrar. Las cuentas se crean con la aplicación, que es la que calcula el hash PBKDF2 (vea el
+-- comentario del final y el paso 5 de docs/instalacion-paso-a-paso.md).
 
 USE universidad;
 
@@ -141,11 +143,12 @@ INSERT INTO `calificaciones` (`id_estudiante`, `id_seccion`, `nota_parcial1`, `n
   (1, 12, 3.00, 3.00, 3.50, 'APROBADO'),
   (3, 13, 2.00, 2.00, 3.00, 'REPROBADO');
 
--- Cuentas de acceso de la demo. El hash se genera con la propia aplicación, así que cree las cuentas
--- después de cargar el resto del semilla:
+-- Cuentas de acceso de la demo. El hash lo genera la propia aplicación, así que cree las cuentas DESPUÉS de
+-- cargar esta semilla (el cuarto argumento exige un id_profesor o id_estudiante que ya exista). `compile`
+-- delante porque target/classes aún no existe en un PC recién montado, y sin `-o` por el mismo motivo:
 --
---   mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario -Dexec.args="admin.ut ClaveDemo123! ADMINISTRATIVO"
---   mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario -Dexec.args="profesor.cardozo ClaveDemo123! PROFESOR 1"
---   mvn -q -o exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario -Dexec.args="estudiante.rojas ClaveDemo123! ESTUDIANTE 1"
+--   mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario -Dexec.args="admin.ut ClaveDemo123! ADMINISTRATIVO"
+--   mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario -Dexec.args="profesor.cardozo ClaveDemo123! PROFESOR 1"
+--   mvn -q compile exec:java -Dexec.mainClass=universidad.seguridad.CrearUsuario -Dexec.args="estudiante.rojas ClaveDemo123! ESTUDIANTE 1"
 --
--- (los números finales son id_profesor e id_estudiante de las tablas de arriba).
+-- (el último número es id_profesor o id_estudiante de las tablas de arriba).
