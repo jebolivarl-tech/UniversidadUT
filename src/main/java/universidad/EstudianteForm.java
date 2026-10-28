@@ -53,7 +53,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         {new Color(207, 250, 254), new Color(14, 116, 144)}
     };
 
-    // Capa de persistencia (DAO)
     private final EstudianteDAO estudianteDAO = new EstudianteDAOImpl();
     private final CarreraDAO carreraDAO = new CarreraDAOImpl();
     private final Map<Integer, String> nombresCarrera = new HashMap<>();
@@ -65,11 +64,11 @@ public class EstudianteForm extends javax.swing.JFrame {
 
     private JLabel kpiTotal, kpiCarreras, kpiVisibles, kpiEdad;
 
-    private HintField txtId, txtNombre, txtApellido, txtEmail;
+    private CampoConPista txtId, txtNombre, txtApellido, txtEmail;
     private DatePicker dpFechaNacimiento;
     private JComboBox<Carrera> cbxCarreraForm;
 
-    private HintField txtBuscar, txtDesde, txtHasta;
+    private CampoConPista txtBuscar, txtDesde, txtHasta;
     private JComboBox<String> cbxBuscarEn;
     private JComboBox<Object> cbxFiltroCarrera;
 
@@ -80,11 +79,10 @@ public class EstudianteForm extends javax.swing.JFrame {
         setLocationRelativeTo(null);
     }
 
-    /** Panel tipo tarjeta con esquinas redondeadas */
-    static class Card extends JPanel {
+    static class PanelTarjeta extends JPanel {
         private final int arc;
 
-        Card(LayoutManager lm, int arc) {
+        PanelTarjeta(LayoutManager lm, int arc) {
             super(lm);
             this.arc = arc;
             setOpaque(false);
@@ -103,9 +101,8 @@ public class EstudianteForm extends javax.swing.JFrame {
         }
     }
 
-    /** Botón con esquinas redondeadas */
-    static class RoundButton extends JButton {
-        RoundButton(String texto, Color fondo, Color letra) {
+    static class BotonRedondeado extends JButton {
+        BotonRedondeado(String texto, Color fondo, Color letra) {
             super(texto);
             setBackground(fondo);
             setForeground(letra);
@@ -129,11 +126,10 @@ public class EstudianteForm extends javax.swing.JFrame {
         }
     }
 
-    /** Campo de texto con texto de ayuda (placeholder) */
-    static class HintField extends JTextField {
+    static class CampoConPista extends JTextField {
         private final String hint;
 
-        HintField(String hint) {
+        CampoConPista(String hint) {
             this.hint = hint;
             setFont(FUENTE);
             setForeground(TEXTO);
@@ -158,11 +154,10 @@ public class EstudianteForm extends javax.swing.JFrame {
         }
     }
 
-    /** Etiqueta redondeada (pill) para mostrar la carrera */
-    static class Pill extends JLabel {
+    static class EtiquetaCarrera extends JLabel {
         private Color fondo = AZUL_CLARO;
 
-        Pill() {
+        EtiquetaCarrera() {
             setFont(FUENTE_S);
             setBorder(new EmptyBorder(3, 10, 3, 10));
             setOpaque(false);
@@ -237,16 +232,16 @@ public class EstudianteForm extends javax.swing.JFrame {
     }
 
     private JButton crearItemMenu(String texto, boolean activo, java.awt.event.ActionListener accion) {
-        RoundButton b = new RoundButton(texto, activo ? AZUL_CLARO : Color.WHITE, activo ? AZUL_MEDIO : TEXTO);
-        b.setHorizontalAlignment(SwingConstants.LEFT);
-        b.setBorder(new EmptyBorder(0, 14, 0, 0));
-        b.setAlignmentX(Component.LEFT_ALIGNMENT);
-        b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        b.setPreferredSize(new Dimension(200, 40));
+        BotonRedondeado boton = new BotonRedondeado(texto, activo ? AZUL_CLARO : Color.WHITE, activo ? AZUL_MEDIO : TEXTO);
+        boton.setHorizontalAlignment(SwingConstants.LEFT);
+        boton.setBorder(new EmptyBorder(0, 14, 0, 0));
+        boton.setAlignmentX(Component.LEFT_ALIGNMENT);
+        boton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        boton.setPreferredSize(new Dimension(200, 40));
         if (accion != null) {
-            b.addActionListener(accion);
+            boton.addActionListener(accion);
         }
-        return b;
+        return boton;
     }
 
     private JPanel crearContenido() {
@@ -319,24 +314,24 @@ public class EstudianteForm extends javax.swing.JFrame {
     }
 
     private JPanel crearKpi(String titulo, JLabel valor, String pie) {
-        Card c = new Card(new BorderLayout(), 16);
-        c.setBorder(new EmptyBorder(12, 16, 12, 16));
-        JLabel t = new JLabel(titulo);
-        t.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        t.setForeground(GRIS);
+        PanelTarjeta tarjeta = new PanelTarjeta(new BorderLayout(), 16);
+        tarjeta.setBorder(new EmptyBorder(12, 16, 12, 16));
+        JLabel etiquetaTitulo = new JLabel(titulo);
+        etiquetaTitulo.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        etiquetaTitulo.setForeground(GRIS);
         valor.setFont(new Font("Segoe UI", Font.BOLD, 28));
         valor.setForeground(AZUL);
-        JLabel p = new JLabel(pie);
-        p.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        p.setForeground(GRIS);
-        c.add(t, BorderLayout.NORTH);
-        c.add(valor, BorderLayout.CENTER);
-        c.add(p, BorderLayout.SOUTH);
-        return c;
+        JLabel etiquetaPie = new JLabel(pie);
+        etiquetaPie.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        etiquetaPie.setForeground(GRIS);
+        tarjeta.add(etiquetaTitulo, BorderLayout.NORTH);
+        tarjeta.add(valor, BorderLayout.CENTER);
+        tarjeta.add(etiquetaPie, BorderLayout.SOUTH);
+        return tarjeta;
     }
 
     private JPanel crearPanelFormulario() {
-        Card pnl = new Card(new GridBagLayout(), 16);
+        PanelTarjeta pnl = new PanelTarjeta(new GridBagLayout(), 16);
         pnl.setPreferredSize(new Dimension(340, 0));
         pnl.setBorder(new EmptyBorder(16, 18, 16, 18));
 
@@ -352,12 +347,12 @@ public class EstudianteForm extends javax.swing.JFrame {
         g.insets = new Insets(0, 0, 4, 0);
         pnl.add(t, g);
 
-        txtId = new HintField(null);
+        txtId = new CampoConPista(null);
         txtId.setEditable(false);
         txtId.setBackground(new Color(241, 245, 249));
-        txtNombre = new HintField("Ej: Valeria Sofía");
-        txtApellido = new HintField("Ej: Navarro Morales");
-        txtEmail = new HintField("correo@ejemplo.com");
+        txtNombre = new CampoConPista("Ej: Valeria Sofía");
+        txtApellido = new CampoConPista("Ej: Navarro Morales");
+        txtEmail = new CampoConPista("correo@ejemplo.com");
         DatePickerSettings configuracionFecha = new DatePickerSettings(Locale.forLanguageTag("es-CO"));
         configuracionFecha.setFormatForDatesCommonEra("dd/MM/uuuu");
         configuracionFecha.setAllowEmptyDates(false);
@@ -381,13 +376,13 @@ public class EstudianteForm extends javax.swing.JFrame {
         dpFechaNacimiento.setPreferredSize(new Dimension(260, 34));
         fila = agregarFila(pnl, g, fila, "Carrera universitaria *", cbxCarreraForm);
 
-        RoundButton btnGuardar = new RoundButton("Registrar", AZUL, Color.WHITE);
+        BotonRedondeado btnGuardar = new BotonRedondeado("Registrar", AZUL, Color.WHITE);
         btnGuardar.addActionListener(e -> accionGuardar());
-        RoundButton btnModificar = new RoundButton("Actualizar", NARANJA, Color.WHITE);
+        BotonRedondeado btnModificar = new BotonRedondeado("Actualizar", NARANJA, Color.WHITE);
         btnModificar.addActionListener(e -> accionModificar());
-        RoundButton btnEliminar = new RoundButton("Eliminar", ROJO, Color.WHITE);
+        BotonRedondeado btnEliminar = new BotonRedondeado("Eliminar", ROJO, Color.WHITE);
         btnEliminar.addActionListener(e -> accionEliminar());
-        RoundButton btnNuevo = new RoundButton("Limpiar campos", GRIS, Color.WHITE);
+        BotonRedondeado btnNuevo = new BotonRedondeado("Limpiar campos", GRIS, Color.WHITE);
         btnNuevo.addActionListener(e -> limpiarCampos());
 
         JPanel botones = new JPanel(new GridLayout(2, 2, 8, 8));
@@ -422,9 +417,9 @@ public class EstudianteForm extends javax.swing.JFrame {
     }
 
     private JPanel crearPanelTabla() {
-        Card card = new Card(new BorderLayout(0, 10), 16);
-        card.setBorder(new EmptyBorder(14, 14, 10, 14));
-        card.add(crearPanelFiltros(), BorderLayout.NORTH);
+        PanelTarjeta panelTabla = new PanelTarjeta(new BorderLayout(0, 10), 16);
+        panelTabla.setBorder(new EmptyBorder(14, 14, 10, 14));
+        panelTabla.add(crearPanelFiltros(), BorderLayout.NORTH);
 
         // La columna 6 (IdCarrera) no se pinta: la tabla la usa para saber qué carrera guardar
         modeloTabla = new DefaultTableModel(
@@ -443,18 +438,16 @@ public class EstudianteForm extends javax.swing.JFrame {
         tblEstudiantes.setIntercellSpacing(new Dimension(0, 0));
         tblEstudiantes.setFillsViewportHeight(true);
 
-        // Encabezado claro
-        JTableHeader th = tblEstudiantes.getTableHeader();
-        th.setReorderingAllowed(false);
-        th.setPreferredSize(new Dimension(100, 34));
-        DefaultTableCellRenderer hr = new DefaultTableCellRenderer();
-        hr.setBackground(new Color(241, 245, 249));
-        hr.setForeground(GRIS);
-        hr.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        hr.setBorder(new EmptyBorder(0, 12, 0, 8));
-        th.setDefaultRenderer(hr);
+        JTableHeader encabezado = tblEstudiantes.getTableHeader();
+        encabezado.setReorderingAllowed(false);
+        encabezado.setPreferredSize(new Dimension(100, 34));
+        DefaultTableCellRenderer renderEncabezado = new DefaultTableCellRenderer();
+        renderEncabezado.setBackground(new Color(241, 245, 249));
+        renderEncabezado.setForeground(GRIS);
+        renderEncabezado.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        renderEncabezado.setBorder(new EmptyBorder(0, 12, 0, 8));
+        encabezado.setDefaultRenderer(renderEncabezado);
 
-        // Celdas normales
         tblEstudiantes.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value,
@@ -468,13 +461,12 @@ public class EstudianteForm extends javax.swing.JFrame {
             }
         });
 
-        // Columna Carrera: etiqueta de color
         tblEstudiantes.getColumnModel().getColumn(5).setCellRenderer(new DefaultTableCellRenderer() {
-            private final Pill pill = new Pill();
+            private final EtiquetaCarrera etiquetaCarrera = new EtiquetaCarrera();
             private final JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
 
             {
-                panel.add(pill);
+                panel.add(etiquetaCarrera);
             }
 
             @Override
@@ -482,9 +474,9 @@ public class EstudianteForm extends javax.swing.JFrame {
                     boolean isSelected, boolean hasFocus, int row, int column) {
                 int modelRow = table.convertRowIndexToModel(row);
                 int idCarrera = ((Number) modeloTabla.getValueAt(modelRow, 6)).intValue();
-                Color[] par = PILLS[Math.abs(idCarrera) % PILLS.length];
-                pill.setText(value == null ? "" : value.toString());
-                pill.setColores(par[0], par[1]);
+                Color[] colores = PILLS[Math.abs(idCarrera) % PILLS.length];
+                etiquetaCarrera.setText(value == null ? "" : value.toString());
+                etiquetaCarrera.setColores(colores[0], colores[1]);
                 panel.setBackground(isSelected ? AZUL_CLARO : Color.WHITE);
                 panel.setBorder(new MatteBorder(0, 0, 1, 0, BORDE));
                 return panel;
@@ -511,13 +503,13 @@ public class EstudianteForm extends javax.swing.JFrame {
         JScrollPane scroll = new JScrollPane(tblEstudiantes);
         scroll.setBorder(BorderFactory.createLineBorder(BORDE));
         scroll.getViewport().setBackground(Color.WHITE);
-        card.add(scroll, BorderLayout.CENTER);
+        panelTabla.add(scroll, BorderLayout.CENTER);
 
         lblContador = new JLabel("Mostrando 0 de 0 estudiantes");
         lblContador.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblContador.setForeground(GRIS);
-        card.add(lblContador, BorderLayout.SOUTH);
-        return card;
+        panelTabla.add(lblContador, BorderLayout.SOUTH);
+        return panelTabla;
     }
 
     private JPanel crearPanelFiltros() {
@@ -528,14 +520,14 @@ public class EstudianteForm extends javax.swing.JFrame {
         g.fill = GridBagConstraints.HORIZONTAL;
         g.insets = new Insets(3, 3, 3, 3);
 
-        txtBuscar = new HintField("Buscar por ID, nombre, apellido o correo...");
+        txtBuscar = new CampoConPista("Buscar por ID, nombre, apellido o correo...");
         txtBuscar.addActionListener(e -> aplicarFiltros());
         cbxFiltroCarrera = new JComboBox<>();
         cbxFiltroCarrera.setFont(FUENTE);
         cbxFiltroCarrera.addItem("Todas las carreras");
-        RoundButton btnBuscar = new RoundButton("Buscar", AZUL, Color.WHITE);
+        BotonRedondeado btnBuscar = new BotonRedondeado("Buscar", AZUL, Color.WHITE);
         btnBuscar.addActionListener(e -> aplicarFiltros());
-        RoundButton btnReset = new RoundButton("Restablecer", GRIS, Color.WHITE);
+        BotonRedondeado btnReset = new BotonRedondeado("Restablecer", GRIS, Color.WHITE);
         btnReset.addActionListener(e -> restablecerFiltros());
 
         g.gridy = 0;
@@ -556,9 +548,9 @@ public class EstudianteForm extends javax.swing.JFrame {
         cbxBuscarEn = new JComboBox<>(new String[]{"Buscar en: todos", "Buscar en: ID", "Buscar en: nombre",
             "Buscar en: apellido", "Buscar en: correo"});
         cbxBuscarEn.setFont(FUENTE);
-        txtDesde = new HintField("Nacidos desde AAAA-MM-DD");
+        txtDesde = new CampoConPista("Nacidos desde AAAA-MM-DD");
         txtDesde.addActionListener(e -> aplicarFiltros());
-        txtHasta = new HintField("Nacidos hasta AAAA-MM-DD");
+        txtHasta = new CampoConPista("Nacidos hasta AAAA-MM-DD");
         txtHasta.addActionListener(e -> aplicarFiltros());
 
         g.gridy = 1;
@@ -656,7 +648,6 @@ public class EstudianteForm extends javax.swing.JFrame {
         kpiCarreras.setText(String.valueOf(nombresCarrera.size()));
         kpiVisibles.setText(String.valueOf(visibles));
 
-        // Edad promedio
         int suma = 0;
         int n = 0;
         for (int i = 0; i < total; i++) {

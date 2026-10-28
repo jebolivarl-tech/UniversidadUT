@@ -13,7 +13,7 @@
 #   PROF_USR/PROF_CLAVE    profesor con ficha                    (e2e_prof  / ClaveProfesor1)
 #   EST_USR/EST_CLAVE      estudiante con ficha                  (e2e_ana   / ClaveEstudiante1)
 #
-# Cubre las reglas de docs/reglas-de-negocio.md (sección decide curso y periodo, periodo abierto,
+# Cubre las reglas académicas (sección decide curso y periodo, periodo abierto,
 # carrera, cupo, 20 créditos, 30/30/40, 75 % de asistencia, nota propagada a la matrícula), la matriz
 # de permisos por rol, las validaciones de forma, los filtros, las fechas ISO, la salida de sesión y
 # que ninguna respuesta exponga contraseñas. Todo lo que crea lleva prefijo E2E y se borra al final,

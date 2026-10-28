@@ -14,12 +14,12 @@ public class AuthController {
 
     private static final long VENTANA_MS = 15 * 60 * 1000L;
 
-    private final UsuarioDAO usuarioDao;
+    private final UsuarioDAO usuarioDAO;
     private final LoginRateLimiter porCuenta = new LoginRateLimiter(5, VENTANA_MS);
     private final LoginRateLimiter porIp = new LoginRateLimiter(30, VENTANA_MS);
 
-    public AuthController(UsuarioDAO usuarioDao) {
-        this.usuarioDao = usuarioDao;
+    public AuthController(UsuarioDAO usuarioDAO) {
+        this.usuarioDAO = usuarioDAO;
     }
 
     public void registrar(Javalin app) {
@@ -50,7 +50,7 @@ public class AuthController {
                 throw new ApiException(429, "Demasiados intentos fallidos. Intente de nuevo más tarde.");
             }
 
-            Usuario usuario = usuarioDao.login(username, password);
+            Usuario usuario = usuarioDAO.login(username, password);
             if (usuario == null) {
                 porCuenta.registrarFallo(claveCuenta);
                 porIp.registrarFallo(ip);

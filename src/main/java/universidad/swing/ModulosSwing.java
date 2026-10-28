@@ -50,7 +50,7 @@ import universidad.servicio.ServicioMatriculas;
 import universidad.servicio.ServicioSecciones;
 import universidad.swing.FormularioCRUD.Campo;
 import universidad.swing.FormularioCRUD.Definicion;
-import universidad.swing.FormularioCRUD.OptionItem;
+import universidad.swing.FormularioCRUD.Opcion;
 import universidad.web.Validaciones;
 
 /**
@@ -231,9 +231,9 @@ public final class ModulosSwing {
                 .campo(Campo.texto("Fecha fin (AAAA-MM-DD):", p -> fecha(p.getFechaFin()),
                         (p, v) -> p.setFechaFin(fecha("la fecha de fin", v))))
                 .campo(Campo.lista("Estado:", p -> texto(p.getEstado()), PeriodoAcademico::setEstado,
-                        () -> List.of(OptionItem.texto(PeriodoAcademico.ACTIVO),
-                                OptionItem.texto(PeriodoAcademico.INACTIVO),
-                                OptionItem.texto(PeriodoAcademico.CERRADO))))
+                        () -> List.of(Opcion.texto(PeriodoAcademico.ACTIVO),
+                                Opcion.texto(PeriodoAcademico.INACTIVO),
+                                Opcion.texto(PeriodoAcademico.CERRADO))))
                 .valido(Validaciones::esPeriodoValido,
                         "Nombre, estado y fechas coherentes (la inicio no puede ser posterior a la fin).")
                 .soloLectura(!esAdministrativo)
@@ -340,8 +340,8 @@ public final class ModulosSwing {
                 .campo(Campo.texto("Fecha (AAAA-MM-DD):", a -> fecha(a.getFecha()),
                         (a, v) -> a.setFecha(fecha("la fecha", v))))
                 .campo(Campo.lista("Estado:", a -> texto(a.getEstado()), Asistencia::setEstado,
-                        () -> List.of(OptionItem.texto(Asistencia.ASISTIO), OptionItem.texto(Asistencia.FALTO),
-                                OptionItem.texto(Asistencia.TARDANZA), OptionItem.texto(Asistencia.JUSTIFICADO))))
+                        () -> List.of(Opcion.texto(Asistencia.ASISTIO), Opcion.texto(Asistencia.FALTO),
+                                Opcion.texto(Asistencia.TARDANZA), Opcion.texto(Asistencia.JUSTIFICADO))))
                 .antesEscribir(this::validarAsistencia)
                 .valido(Validaciones::esAsistenciaValida,
                         "Estudiante, sección, fecha de hoy o anterior y estado son obligatorios.")
@@ -397,15 +397,15 @@ public final class ModulosSwing {
                 .campo(Campo.clave("Contraseña (10 caracteres; vacía = no cambiarla):",
                         (c, v) -> c.setPassword(v.isEmpty() ? null : v)))
                 .campo(Campo.lista("Rol:", c -> texto(c.getRol()), Cuenta::setRol,
-                        () -> List.of(OptionItem.texto(ADMINISTRATIVO), OptionItem.texto(PROFESOR),
-                                OptionItem.texto(ESTUDIANTE))))
+                        () -> List.of(Opcion.texto(ADMINISTRATIVO), Opcion.texto(PROFESOR),
+                                Opcion.texto(ESTUDIANTE))))
                 .campo(Campo.lista("Ficha de estudiante:", c -> idOpcional(c.getIdEstudiante()),
                         (c, v) -> c.setIdEstudiante(fijaOpcional(v)), this::opcionesEstudiantesNinguna))
                 .campo(Campo.lista("Ficha de profesor:", c -> idOpcional(c.getIdProfesor()),
                         (c, v) -> c.setIdProfesor(fijaOpcional(v)), this::opcionesProfesoresNinguno))
                 .campo(Campo.lista("Estado:", c -> c.isEstado() ? "ACTIVA" : "INACTIVA",
                         (c, v) -> c.setEstado("ACTIVA".equals(v)),
-                        () -> List.of(OptionItem.texto("ACTIVA"), OptionItem.texto("INACTIVA"))))
+                        () -> List.of(Opcion.texto("ACTIVA"), Opcion.texto("INACTIVA"))))
                 .antesEscribir(c -> c.setRol(texto(c.getRol()).toUpperCase()))
                 .valido(c -> Validaciones.esCuentaValida(c, false),
                         "Usuario de 3 a 50 caracteres, rol válido y ficha vinculada si el rol es PROFESOR o ESTUDIANTE.")
@@ -519,67 +519,67 @@ public final class ModulosSwing {
 
     // ------------------------------------------------------------------ catálogos
 
-    private List<OptionItem> opcionesFacultades() {
+    private List<Opcion> opcionesFacultades() {
         return opciones(facultades.listarTodos(), Facultad::getIdFacultad, f -> f.getNombre());
     }
 
-    private List<OptionItem> opcionesProfesores() {
+    private List<Opcion> opcionesProfesores() {
         return opciones(profesores.listarTodos(), Profesor::getIdProfesor,
                 p -> p.getApellido() + ", " + p.getNombre());
     }
 
-    private List<OptionItem> opcionesProfesoresNinguno() {
+    private List<Opcion> opcionesProfesoresNinguno() {
         return conNinguna(opcionesProfesores());
     }
 
-    private List<OptionItem> opcionesCarreras() {
+    private List<Opcion> opcionesCarreras() {
         return opciones(carreras.listarTodos(), Carrera::getIdCarrera, c -> c.getNombre());
     }
 
-    private List<OptionItem> opcionesEstudiantes() {
+    private List<Opcion> opcionesEstudiantes() {
         return opciones(estudiantes.listarTodos(), Estudiante::getIdEstudiante,
                 e -> e.getApellido() + ", " + e.getNombre());
     }
 
-    private List<OptionItem> opcionesEstudiantesNinguna() {
+    private List<Opcion> opcionesEstudiantesNinguna() {
         return conNinguna(opcionesEstudiantes());
     }
 
-    private List<OptionItem> opcionesPeriodos() {
+    private List<Opcion> opcionesPeriodos() {
         return opciones(periodos.listarTodos(), PeriodoAcademico::getIdPeriodo,
                 p -> p.getNombre() + " (" + p.getEstado() + ")");
     }
 
-    private List<OptionItem> opcionesCursos() {
+    private List<Opcion> opcionesCursos() {
         return opciones(cursos.listarTodos(), Curso::getIdCurso, Curso::getNombre);
     }
 
     /** El texto de cada sección incluye la materia, el aula, el periodo y la ocupación actual. */
-    private List<OptionItem> opcionesSecciones() {
+    private List<Opcion> opcionesSecciones() {
         return opciones(secciones.listarTodos(), Seccion::getIdSeccion, Seccion::describir);
     }
 
-    private List<OptionItem> opcionesCreditos() {
-        List<OptionItem> opciones = new ArrayList<>();
+    private List<Opcion> opcionesCreditos() {
+        List<Opcion> opciones = new ArrayList<>();
         for (int credito = 1; credito <= 10; credito++) {
-            opciones.add(new OptionItem(credito, String.valueOf(credito)));
+            opciones.add(new Opcion(credito, String.valueOf(credito)));
         }
         return opciones;
     }
 
-    private static <E> List<OptionItem> opciones(List<E> filas, Function<E, Integer> lectorId,
+    private static <E> List<Opcion> opciones(List<E> filas, Function<E, Integer> lectorId,
                                                  Function<E, String> lectorTexto) {
-        List<OptionItem> opciones = new ArrayList<>();
+        List<Opcion> opciones = new ArrayList<>();
         for (E fila : filas) {
             int id = lectorId.apply(fila);
-            opciones.add(new OptionItem(id, id + " - " + lectorTexto.apply(fila)));
+            opciones.add(new Opcion(id, id + " - " + lectorTexto.apply(fila)));
         }
         return opciones;
     }
 
-    private static List<OptionItem> conNinguna(List<OptionItem> opciones) {
-        List<OptionItem> conNinguna = new ArrayList<>();
-        conNinguna.add(new OptionItem(0, "0 - ninguna"));
+    private static List<Opcion> conNinguna(List<Opcion> opciones) {
+        List<Opcion> conNinguna = new ArrayList<>();
+        conNinguna.add(new Opcion(0, "0 - ninguna"));
         conNinguna.addAll(opciones);
         return conNinguna;
     }
@@ -587,7 +587,7 @@ public final class ModulosSwing {
     // ------------------------------------------------------------------ conversiones de campos
 
     private static <T> Campo<T> combo(String etiqueta, Function<T, Integer> lector,
-                                       BiConsumer<T, Integer> fijar, Supplier<List<OptionItem>> opciones) {
+                                       BiConsumer<T, Integer> fijar, Supplier<List<Opcion>> opciones) {
         return Campo.lista(etiqueta, t -> String.valueOf(lector.apply(t)),
                 (t, valor) -> fijar.accept(t, entero(etiqueta, valor)), opciones);
     }

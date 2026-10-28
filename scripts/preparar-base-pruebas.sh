@@ -24,6 +24,12 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 BASE="${BASE:-universidad_e2e}"
+# El guion empieza con DROP DATABASE: si alguien apunta BASE a la base real, se queda sin datos.
+if [ "$BASE" = "universidad" ] && [ "${FORZAR:-0}" != "1" ]; then
+  echo "Se niega a trabajar sobre la base real 'universidad'. Use otra (p. ej. universidad_e2e)" >&2
+  echo "o, si de verdad sabe lo que hace, repita con FORZAR=1." >&2
+  exit 1
+fi
 MYSQL_BIN="${MYSQL_BIN:-mysql}"
 DB_USER="${1:-${DB_USER:-root}}"
 # La contraseña viaja por el entorno que lee el propio cliente: así no aparece en el comando ni en el log.

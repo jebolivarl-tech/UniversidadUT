@@ -6,8 +6,8 @@
 -- Los nombres de facultades, carreras y cursos son de ejemplo: ajústelos a la malla real antes de
 -- mostrar el sistema. Los ids van explícitos para que las claves foráneas cuadren.
 -- Este archivo NO inserta cuentas de acceso: al terminar la tabla `usuarios` queda vacía y todavía no se
--- puede entrar. Las cuentas se crean con la aplicación, que es la que calcula el hash PBKDF2 (vea el
--- comentario del final y el paso 5 de docs/instalacion-paso-a-paso.md).
+-- puede entrar. Las cuentas se crean con `universidad.seguridad.CrearUsuario` o desde la web, que son los
+-- únicos caminos que calculan el hash PBKDF2; la contraseña nunca se guarda en texto plano.
 
 USE universidad;
 

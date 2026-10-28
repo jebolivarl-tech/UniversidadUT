@@ -37,10 +37,10 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
         final Function<T, String> lectura;
         final BiConsumer<T, String> escritura;
         final boolean clave;
-        final Supplier<List<OptionItem>> opciones;
+        final Supplier<List<Opcion>> opciones;
 
         private Campo(String etiqueta, Function<T, String> lectura, BiConsumer<T, String> escritura,
-                      boolean clave, Supplier<List<OptionItem>> opciones) {
+                      boolean clave, Supplier<List<Opcion>> opciones) {
             this.etiqueta = etiqueta;
             this.lectura = lectura;
             this.escritura = escritura;
@@ -58,24 +58,24 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
         }
 
         public static <T> Campo<T> lista(String etiqueta, Function<T, String> lectura,
-                                         BiConsumer<T, String> escritura, Supplier<List<OptionItem>> opciones) {
+                                         BiConsumer<T, String> escritura, Supplier<List<Opcion>> opciones) {
             return new Campo<>(etiqueta, lectura, escritura, false, opciones);
         }
     }
 
     /** Valor de una lista desplegable: entrega el id numérico o el texto según el tipo de opción. */
-    public static final class OptionItem {
+    public static final class Opcion {
         private final int id;
         private final String texto;
 
-        public OptionItem(int id, String texto) {
+        public Opcion(int id, String texto) {
             this.id = id;
             this.texto = texto;
         }
 
         /** Opción fija (estados, sí/no) donde el valor guardado es el propio texto. */
-        public static OptionItem texto(String texto) {
-            return new OptionItem(-1, texto);
+        public static Opcion texto(String texto) {
+            return new Opcion(-1, texto);
         }
 
         public String valor() {
@@ -271,7 +271,7 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
     private javax.swing.JComponent crearEditor(Campo<T> campo) {
         javax.swing.JComponent editor;
         if (campo.opciones != null) {
-            editor = new JComboBox<>(campo.opciones.get().toArray(new OptionItem[0]));
+            editor = new JComboBox<>(campo.opciones.get().toArray(new Opcion[0]));
         } else if (campo.clave) {
             editor = new JPasswordField(24);
         } else {
@@ -291,7 +291,7 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
         Object editor = editores.get(indice);
         if (editor instanceof JComboBox) {
             Object seleccion = ((JComboBox<?>) editor).getSelectedItem();
-            return seleccion == null ? "" : ((OptionItem) seleccion).valor();
+            return seleccion == null ? "" : ((Opcion) seleccion).valor();
         }
         if (editor instanceof JPasswordField) {
             return new String(((JPasswordField) editor).getPassword()).trim();
@@ -333,7 +333,7 @@ public class FormularioCRUD<T> extends javax.swing.JFrame {
             Object editor = editores.get(i);
             if (editor instanceof JComboBox) {
                 String valor = campo.lectura.apply(entidad);
-                JComboBox<OptionItem> combo = (JComboBox<OptionItem>) editor;
+                JComboBox<Opcion> combo = (JComboBox<Opcion>) editor;
                 for (int j = 0; j < combo.getItemCount(); j++) {
                     if (combo.getItemAt(j).valor().equals(valor)) {
                         combo.setSelectedIndex(j);

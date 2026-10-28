@@ -1,6 +1,6 @@
 @echo off
 REM Instalador de UniversidadDao para un PC nuevo. Solo localhost, sin nube.
-REM Hace los pasos 2 a 6 de docs/instalacion-paso-a-paso.md: comprueba las herramientas, crea la base,
+REM Puesta a punto en un PC nuevo: comprueba las herramientas, crea la base,
 REM escribe las credenciales locales, genera su cuenta administrativa y compila. Es reutilizable: si algo
 REM fallo, vuelva a ejecutarlo y retoma desde donde se detuvo.
 REM Gobernable sin preguntas con variables de entorno:

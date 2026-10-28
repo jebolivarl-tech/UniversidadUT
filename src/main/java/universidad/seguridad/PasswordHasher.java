@@ -36,12 +36,12 @@ public final class PasswordHasher {
                 + Base64.getEncoder().encodeToString(derivada);
     }
 
-    /** Indica si el valor almacenado ya está en formato hash (y no es una contraseña heredada en texto plano). */
+    /** Cumplir las cuatro partes del formato lo distingue de una contraseña heredada en texto plano. */
     public static boolean esHash(String almacenado) {
         return almacenado != null && almacenado.startsWith(PREFIJO + "$") && almacenado.split("\\$").length == 4;
     }
 
-    /** Verifica una contraseña contra un hash. Devuelve false si el valor almacenado no es un hash válido. */
+    /** Sin hash válido no hay verificación posible: devuelve false antes que comparar en texto plano. */
     public static boolean verificar(String contrasena, String almacenado) {
         if (contrasena == null || !esHash(almacenado)) {
             return false;
