@@ -1,16 +1,24 @@
-// Las páginas se sirven desde el propio servidor, así que el origen de la página ya es la API.
-// El único caso aparte es abrirlas con file:// desde el disco, donde no hay origen que reutilizar.
+// Dirección a la que el navegador manda sus pedidos. Aquí la página y la API REST (las direcciones
+// /api/... que leen, crean, cambian y borran datos mediante HTTP) las entrega el mismo Java, así que
+// basta con reutilizar la dirección con la que se abrió la página.
+// Lo único aparte es abrir un HTML con file:// desde el disco: ahí no hay servidor de por medio y se
+// escribe a mano localhost:8080, que es el puerto donde Java escucha.
 const API_BASE_URL = window.location.protocol === 'file:'
   ? 'http://localhost:8080'
   : window.location.origin;
+// Caja que todas las páginas dejan arriba para escribir avisos; se localiza por su id.
 const message = document.getElementById('message');
 
+// Escribe el aviso: en rojo cuando algo salió mal y en verde cuando todo va bien.
 function showMessage(text, isError = false) {
   if (!message) return;
   message.textContent = text;
   message.style.color = isError ? '#dc2626' : '#15803d';
 }
 
+// Cuando algo falla, Java manda en la respuesta un texto con llaves (JSON) explicando el motivo, por
+// ejemplo {"error":"El correo ya está registrado"}. Aquí se saca ese texto para mostrarlo; si no trae
+// ese formato, se enseña lo que haya llegado junto con el número de error de HTTP.
 async function responseError(response) {
   const body = await response.text();
   if (!body) return `Error HTTP ${response.status}.`;
@@ -23,6 +31,8 @@ async function responseError(response) {
   }
 }
 
+// Este error es de conexión: el navegador ni consiguió hablar con Java. Suele ser el servidor apagado
+// o que Java no autoriza el otro origen desde el que se le llama (eso es el CORS del mensaje).
 function connectionErrorMessage(error) {
   if (error instanceof TypeError) {
     return `No se pudo conectar con Java. Comprueba que el servidor esté activo en ${API_BASE_URL.replace(/^https?:\/\//, '')} y que CORS esté permitido.`;
@@ -30,6 +40,9 @@ function connectionErrorMessage(error) {
   return error.message || 'Ocurrió un error inesperado.';
 }
 
+// Java manda las fechas como texto ("2026-03-01") y a veces como un número de milisegundos. Aquí todo
+// se convierte al formato día/mes/año que la gente lee. Si el texto no se entiende, se deja como vino
+// en vez de mostrar una fecha inventada.
 function formatDateForDisplay(value) {
   if (value === null || value === undefined || value === '') return '';
 
@@ -59,6 +72,10 @@ function formatDateForDisplay(value) {
   }).format(date);
 }
 
+// Envío del login. Usuario y contraseña viajan escritos como JSON dentro de un pedido HTTP a
+// /api/login. Java comprueba la cuenta, cierra la sesión que pudiera haber de antes y abre una nueva
+// donde guarda el rol; esa sesión se identifica con una cookie que el navegador manda solo en cada
+// pedido siguiente, para no estar escribiendo la contraseña otra vez.
 async function loginUser(event) {
   if (!event) return;
   event.preventDefault();
@@ -72,6 +89,7 @@ async function loginUser(event) {
     return;
   }
 
+  // Se apaga el botón mientras Java responde, para que un doble clic no mande dos ingresos seguidos.
   if (loginButton) loginButton.disabled = true;
 
   try {
@@ -85,11 +103,14 @@ async function loginUser(event) {
       body: JSON.stringify({ username, password })
     });
 
+    // Con 401 Java dice que las credenciales no valen o la cuenta está inactiva: se muestra su
+    // mensaje y la persona se queda escribiendo en la misma página.
     if (!response.ok) {
       showMessage(await responseError(response), true);
       return;
     }
 
+    // La sesión ya existe: se pasa al panel, que es donde se decide qué se ve según el rol.
     showMessage('Inicio de sesión correcto.');
     window.location.href = 'menu.html';
   } catch (error) {
@@ -100,6 +121,8 @@ async function loginUser(event) {
   }
 }
 
+// Nada más abrir el login se pregunta a /api/health si Java está levantado y si puede abrir conexión
+// con MySQL. Así el aviso de arriba avisa antes de que nadie pierda el tiempo escribiendo credenciales.
 async function comprobarEstadoServidor() {
   if (!document.getElementById('loginForm')) return;
 
@@ -121,10 +144,12 @@ async function comprobarEstadoServidor() {
   }
 }
 
-let estudiantesActuales = [];
-let carrerasEstudiantes = [];
-let estudianteSeleccionado = null;
+// Datos que esta pantalla tiene en la memoria del navegador mientras se usa.
+let estudiantesActuales = [];      // lista completa leída de /api/estudiantes
+let carrerasEstudiantes = [];      // carreras, para los desplegables y para escribir su nombre
+let estudianteSeleccionado = null; // fila elegida; null significa que el formulario está creando uno nuevo
 
+// Deja cualquier fecha como texto aaaa-mm-dd, que es lo que entienden las cajas de fecha del navegador.
 function fechaISO(value) {
   if (value === null || value === undefined || value === '') return '';
   const text = String(value);
@@ -133,6 +158,8 @@ function fechaISO(value) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
 }
 
+// Llena los dos desplegables de carrera (el del formulario y el del filtro) con las carreras que
+// manda Java. Estos datos casi no cambian, así que se leen una vez al abrir la pantalla.
 async function cargarCarrerasParaEstudiantes() {
   const formSelect = document.getElementById('idCarrera');
   const filterSelect = document.getElementById('filtroCarrera');
@@ -143,6 +170,8 @@ async function cargarCarrerasParaEstudiantes() {
       headers: { Accept: 'application/json' },
       credentials: 'include'
     });
+    // El 401 significa que la sesión se cerró mientras la página estaba abierta; en todos los pedidos
+    // de este archivo se avisa igual y no se intenta seguir.
     if (!response.ok) {
       throw new Error(response.status === 401
         ? 'La sesión expiró. Inicie sesión nuevamente.'
@@ -162,6 +191,8 @@ async function cargarCarrerasParaEstudiantes() {
   }
 }
 
+// Pide la lista de estudiantes al servidor con las cookies de la sesión. El navegador la guarda y con
+// ella trabaja la pantalla: por eso buscar o filtrar no vuelve a tocar la base de datos.
 async function cargarEstudiantes() {
   const tbody = document.getElementById('tablaEstudiantes');
   if (!tbody) return false;
@@ -187,6 +218,8 @@ async function cargarEstudiantes() {
   }
 }
 
+// Aplica la búsqueda de texto, la carrera y el rango de fecha sobre la lista que ya está en el
+// navegador. Se compara sin mayúsculas y las fechas se comparan como texto aaaa-mm-dd, que ordena bien.
 function aplicarFiltrosEstudiantes() {
   const query = document.getElementById('buscarEstudiante').value.trim().toLocaleLowerCase('es');
   const field = document.getElementById('buscarEn').value;
@@ -218,6 +251,8 @@ function aplicarFiltrosEstudiantes() {
   actualizarIndicadoresEstudiantes(visibles);
 }
 
+// Escribe las filas de la tabla con los datos de cada estudiante. La carrera se busca por su número
+// para mostrar el nombre. Cada fila se puede elegir con el clic o con la tecla Enter o el espacio.
 function renderEstudiantes(students) {
   const tbody = document.getElementById('tablaEstudiantes');
   const empty = document.getElementById('estudiantesVacio');
@@ -255,6 +290,8 @@ function renderEstudiantes(students) {
   });
 }
 
+// Renueva los cuatro números de arriba. La edad promedio se calcula con la fecha de hoy y se descartan
+// las edades que no pueden ser (negativas o mayores de 130), que salen de fechas mal escritas.
 function actualizarIndicadoresEstudiantes(visibles) {
   document.getElementById('kpiTotal').textContent = estudiantesActuales.length;
   document.getElementById('kpiCarreras').textContent = carrerasEstudiantes.length;
@@ -277,6 +314,8 @@ function actualizarIndicadoresEstudiantes(visibles) {
   document.getElementById('kpiEdad').textContent = average === null ? '-' : `${average.toFixed(1)} a\u00F1os`;
 }
 
+// Al elegir una fila, sus datos pasan al formulario y la tabla se redibuja con esa fila resaltada.
+// A partir de aquí "Actualizar" y "Eliminar" trabajan sobre este estudiante.
 function seleccionarEstudiante(student) {
   estudianteSeleccionado = student.idEstudiante;
   document.getElementById('estudianteId').value = student.idEstudiante;
@@ -288,6 +327,8 @@ function seleccionarEstudiante(student) {
   renderEstudiantes(estudiantesFiltradosActuales());
 }
 
+// Repite el mismo filtro de aplicarFiltrosEstudiantes, pero devolviendo la lista: sirve para volver a
+// escribir la tabla después de elegir o limpiar, sin perder lo que se estaba viendo.
 function estudiantesFiltradosActuales() {
   const query = document.getElementById('buscarEstudiante').value.trim().toLocaleLowerCase('es');
   const field = document.getElementById('buscarEn').value;
@@ -307,6 +348,7 @@ function estudiantesFiltradosActuales() {
   });
 }
 
+// Deja el formulario en blanco y quita la fila elegida, o sea: vuelve al modo "registrar uno nuevo".
 function limpiarFormularioEstudiante() {
   estudianteSeleccionado = null;
   document.getElementById('estudianteForm').reset();
@@ -314,6 +356,7 @@ function limpiarFormularioEstudiante() {
   renderEstudiantes(estudiantesFiltradosActuales());
 }
 
+// Lee las cajas del formulario y arma el objeto que después se convierte al JSON que acepta Java.
 function obtenerDatosFormularioEstudiante() {
   return {
     nombre: document.getElementById('nombre').value.trim(),
@@ -324,6 +367,9 @@ function obtenerDatosFormularioEstudiante() {
   };
 }
 
+// Crea o cambia un estudiante. El mismo botón de enviar crea con POST; "Actualizar" manda PUT a la
+// dirección del elegido. Después de guardar se vuelve a pedir la lista: el número nuevo y los datos
+// confirmados los pone Java, así que la tabla debe mostrar lo que quedó en la base, no lo que se escribió.
 async function guardarEstudiante(event, actualizar = false) {
   event?.preventDefault();
   if (actualizar && estudianteSeleccionado === null) {
@@ -350,6 +396,8 @@ async function guardarEstudiante(event, actualizar = false) {
       credentials: 'include',
       body: JSON.stringify(estudiante)
     });
+    // El navegador todavía no sabe si el correo se repite o la carrera existe; eso lo decide Java y,
+    // si no le gusta, contesta con el motivo en su mensaje.
     if (!response.ok) {
       throw new Error(response.status === 401
         ? 'La sesión expiró. Inicie sesión nuevamente.'
@@ -369,6 +417,8 @@ async function guardarEstudiante(event, actualizar = false) {
   }
 }
 
+// Borra al estudiante elegido, pero solo tras confirmar. Si tiene matrículas o una cuenta de acceso
+// encima, Java lo impide y escribe el motivo; la tabla se recarga cuando el borrado sí ocurrió.
 async function eliminarEstudiante() {
   if (estudianteSeleccionado === null) {
     showMessage('Seleccione un estudiante de la tabla para eliminar.', true);
@@ -400,6 +450,8 @@ async function eliminarEstudiante() {
   }
 }
 
+// Arranca solo en la pantalla de estudiantes: pone la fecha de arriba, enlaza botones y filtros, y
+// primero lee las carreras para luego leer los estudiantes (las tablas necesitan los nombres).
 function iniciarModuloEstudiantes() {
   const currentDate = document.getElementById('fechaActual');
   if (currentDate) {
@@ -408,6 +460,8 @@ function iniciarModuloEstudiantes() {
     }).format(new Date());
   }
 
+  // En esta pantalla la búsqueda se aplica mientras se escribe, sin botón de por medio; "Restablecer"
+  // deja las cinco cajas como al principio.
   const applyFilters = () => aplicarFiltrosEstudiantes();
   document.getElementById('btnBuscar')?.addEventListener('click', applyFilters);
   document.getElementById('buscarEstudiante')?.addEventListener('input', applyFilters);
@@ -430,8 +484,10 @@ function iniciarModuloEstudiantes() {
   cargarCarrerasParaEstudiantes().then(cargarEstudiantes);
 }
 
-let carreraSeleccionada = null;
+let carreraSeleccionada = null;  // carrera que se está corrigiendo; null = el formulario está creando
 
+// Lee las carreras y escribe las filas con sus botones. El encabezado de la tabla ya viene escrito en
+// el HTML, así que aquí solo se llenan las filas.
 async function cargarCarreras() {
   const tbody = document.getElementById('tablaCarreras');
   if (!tbody) return;
@@ -480,6 +536,7 @@ async function cargarCarreras() {
   }
 }
 
+// Pasa la carrera elegida al mismo formulario que crea, para que sirva para los dos casos.
 function seleccionarCarrera(carrera) {
   carreraSeleccionada = carrera.idCarrera;
   document.getElementById('nombreCarrera').value = carrera.nombre ?? '';
@@ -489,6 +546,7 @@ function seleccionarCarrera(carrera) {
   document.getElementById('nombreCarrera').focus();
 }
 
+// Vuelve el formulario de carreras al modo "crear" y esconde el botón de cancelar.
 function limpiarEdicion() {
   carreraSeleccionada = null;
   document.getElementById('carreraForm')?.reset();
@@ -496,6 +554,8 @@ function limpiarEdicion() {
   document.getElementById('cancelarEdicion').hidden = true;
 }
 
+// Crea con POST o cambia con PUT según haya carrera elegida. El número de facultad se escribe a mano
+// en esta pantalla: si esa facultad no existe en la base, Java contesta explicándolo.
 async function guardarCarrera(event) {
   event.preventDefault();
   const carrera = {
@@ -535,6 +595,8 @@ async function guardarCarrera(event) {
   }
 }
 
+// Borra la carrera después de confirmar. Si justo se estaba editando esa misma, se limpia el
+// formulario para que no quede apuntando a un registro que ya no existe.
 async function eliminarCarrera(carrera) {
   if (!window.confirm(`¿Eliminar la carrera "${carrera.nombre}"?`)) return;
 
@@ -558,6 +620,8 @@ async function eliminarCarrera(carrera) {
   }
 }
 
+// Cerrar sesión: se avisa a Java para que olvide al usuario y la cookie deja de servir. Después se
+// regresa al login; si el aviso no llegó, la persona se queda donde está con el error escrito.
 async function cerrarSesion(event) {
   event.preventDefault();
 
@@ -573,6 +637,9 @@ async function cerrarSesion(event) {
   }
 }
 
+// Cada página arranca lo suyo buscando un elemento que solo ella tiene: si aparece el formulario de
+// login se enlaza el ingreso y se comprueba el servidor; si aparece el de estudiantes o el de carreras
+// se monta ese módulo. Así un solo archivo sirve para todas las páginas.
 const loginForm = document.getElementById('loginForm');
 if (loginForm) {
   loginForm.addEventListener('submit', loginUser);
@@ -592,7 +659,11 @@ if (careerForm) {
 const logoutForm = document.getElementById('logoutForm');
 if (logoutForm) logoutForm.addEventListener('submit', cerrarSesion);
 
-// Muestra en el menú solo los módulos permitidos para el rol de la sesión (el servidor valida igualmente cada petición).
+// En el panel y en la barra lateral, los enlaces a módulos nacen ocultos y llevan un data-roles que
+// dice para qué roles son. Aquí se pregunta a /api/me el rol de la sesión y se dejan visibles solo los
+// que le corresponden; los grupos que quedan sin enlaces visibles también se ocultan. Ojo: esto es
+// comodidad, no seguridad. El servidor comprueba la sesión en cada petición, así que escribir en la
+// barra la dirección de una página que no le toca tampoco sirve de nada.
 async function aplicarPermisosDelMenu() {
   const enlaces = document.querySelectorAll('[data-roles]');
   if (enlaces.length === 0) return;
@@ -602,6 +673,7 @@ async function aplicarPermisosDelMenu() {
       headers: { Accept: 'application/json' },
       credentials: 'include'
     });
+    // Sin sesión que responda (401) no hay nada que filtrar: se regresa al login.
     if (!response.ok) {
       window.location.href = 'login.html';
       return;

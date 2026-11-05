@@ -16,19 +16,25 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 
 /**
- * Serializa las fechas como "AAAA-MM-DD" (los formularios HTML usan input type=date)
- * en lugar del epoch que Jackson produce por defecto para java.sql.Date.
+ * Cómo escribe y lee JSON la API REST (JSON es el texto con llaves que se mandan navegador y servidor,
+ * y la API REST son las rutas HTTP que el navegador llama para traer datos).
+ * Lo único que se cambia del comportamiento que trae Javalin por defecto son las fechas: salen como
+ * "AAAA-MM-DD", el formato que usan los campos de fecha de los formularios HTML. Sin esto Java escribiría
+ * un número de milisegundos y el formulario no sabría dónde ponerlo.
  */
 public final class MapeadorJson implements JsonMapper {
 
     private static final ObjectMapper MAPPER = new ObjectMapper().registerModule(
             new SimpleModule()
+                    // Una fecha de la base de datos se escribe como texto AAAA-MM-DD.
                     .addSerializer(Date.class, new JsonSerializer<Date>() {
                         @Override
                         public void serialize(Date valor, JsonGenerator g, SerializerProvider p) throws java.io.IOException {
                             g.writeString(valor.toString());
                         }
                     })
+                    // Y al revés: el texto del formulario se convierte en fecha. Si no tiene el formato,
+                    // se avisa; la ruta que lee el cuerpo responde entonces un 400.
                     .addDeserializer(Date.class, new JsonDeserializer<Date>() {
                         @Override
                         public Date deserialize(JsonParser p, DeserializationContext c) throws java.io.IOException {
@@ -45,6 +51,7 @@ public final class MapeadorJson implements JsonMapper {
                         }
                     }));
 
+    /** Objeto de Java -> texto JSON, para mandar la respuesta al navegador. */
     @Override
     public String toJsonString(Object obj, Type type) {
         try {
@@ -54,6 +61,7 @@ public final class MapeadorJson implements JsonMapper {
         }
     }
 
+    /** Texto JSON -> objeto de Java, para leer el cuerpo que llegó en la petición. */
     @Override
     public <T> T fromJsonString(String json, Type type) {
         try {
@@ -63,6 +71,7 @@ public final class MapeadorJson implements JsonMapper {
         }
     }
 
+    /** Lo mismo, pero cuando el JSON llega como bytes aún sin descifrar; aquí se pasan a texto con UTF-8. */
     @Override
     public <T> T fromJsonStream(InputStream json, Type type) {
         try {

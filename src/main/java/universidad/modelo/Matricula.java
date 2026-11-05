@@ -4,16 +4,21 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Inscripción de un estudiante en una sección de un periodo. El curso y el nombre del periodo se
- * derivan de la sección en el servicio de dominio, nunca los decide el formulario.
+ * La inscripción de un estudiante en una sección de un periodo: es lo que lo matricula en un curso.
+ * La fila guarda los ids de la sección y del curso y el nombre del periodo, pero nadie los escribe a
+ * mano: el servicio de dominio los copia de la sección elegida, para que ninguna matrícula contradiga
+ * al grupo en el que está. La nota definitiva tampoco la decide quien llena el formulario: llega de la
+ * calificación y se sincroniza desde el servicio, para que no exista una segunda versión de la misma
+ * nota.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Matricula {
 
+    // Los cuatro estados que admite la columna en MySQL; arranca en EN_CURSO.
     public static final String EN_CURSO = "EN_CURSO";
     public static final String APROBADO = "APROBADO";
     public static final String REPROBADO = "REPROBADO";
-    /** Pierde el derecho a evaluación definitiva por inasistencia no justificada. */
+    /** Se queda sin evaluación definitiva por inasistencias no justificadas, aunque le alcanzara la nota. */
     public static final String PERDIDO_POR_FALTA_DE_ASISTENCIA = "PERDIDO_POR_FALTA_DE_ASISTENCIA";
 
     private int idMatricula;
@@ -21,9 +26,11 @@ public class Matricula {
     private int idSeccion;
     private int idCurso;
     private String periodo;
+    // Mientras cursa no hay nota, y ese vacío no es un cero: 0 sería una nota presentada y suspensa.
     private Double nota;
     private String estado = EN_CURSO;
 
+    // Vacío a propósito: así la arma Jackson al leer el JSON y el DAO al leer la fila.
     public Matricula() {
     }
 

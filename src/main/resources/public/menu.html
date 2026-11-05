@@ -20,7 +20,9 @@
     </a>
 
     <div class="barra-final">
+      <!-- script.js escribe aquí el usuario y el rol leídos de /api/me -->
       <p class="chip-usuario" id="usuario"></p>
+      <!-- Al enviarlo, script.js avisa a Java para que cierre la sesión y se regresa al login -->
       <form id="logoutForm" class="logout-form">
         <button class="boton boton-suave" type="submit">
           <svg class="icono" viewBox="0 0 24 24" aria-hidden="true">
@@ -40,6 +42,10 @@
       <p class="panel-subtitulo">Elija un módulo para consultar o gestionar la información de su rol.</p>
     </section>
 
+    <!-- Cada tarjeta lleva hidden y un data-roles con los roles que la ven. script.js pregunta el rol
+         de la sesión y deja visibles solo las suyas, por eso nadie arranca con enlaces de más. Es solo
+         comodidad: el servidor comprueba la sesión en cada petición, así que escribir la dirección de
+         una página que no le toca tampoco sirve. -->
     <nav class="modulos" aria-label="Módulos académicos">
       <section class="grupo">
         <h2 class="grupo-titulo">Mi expediente</h2>

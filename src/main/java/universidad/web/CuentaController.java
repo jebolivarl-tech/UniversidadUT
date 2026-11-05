@@ -8,11 +8,17 @@ import universidad.dao.UsuarioDAO;
 import universidad.modelo.Cuenta;
 
 /**
- * Gestión de cuentas de acceso (solo ADMINISTRATIVO). La contraseña se recibe por JSON, se guarda
- * hasheada y nunca se devuelve en las respuestas.
+ * Altas, cambios y bajas de las cuentas que pueden iniciar sesión (la tabla usuarios). Solo lo hace el
+ * rol ADMINISTRATIVO, y se comprueba el rol en la sesión del servidor en cada una de las rutas.
+ *
+ * La contraseña entra por el JSON de la petición y ahí se queda: al guardarla se convierte a hash (una
+ * huella calculada que no se puede devolver a texto), y el objeto {@link universidad.modelo.Cuenta}
+ * está marcado para que ese campo se lea de la petición pero nunca se escriba en la respuesta. Así,
+ * aunque alguien pida la lista de cuentas, no sale ni la contraseña ni su huella.
  */
 public class CuentaController {
 
+    /** Mensaje único para los choques: no se detalla qué dato está ocupado, para no confirmar cuentas ajenas. */
     private static final String CONFLICTO = "El nombre de usuario ya existe o la ficha vinculada no está disponible.";
 
     private final UsuarioDAO dao;
@@ -21,6 +27,7 @@ public class CuentaController {
         this.dao = dao;
     }
 
+    /** Monta las rutas de cuentas en la aplicación. */
     public void registrar(Javalin app) {
         app.get("/api/usuarios", ctx -> {
             Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO);
@@ -39,10 +46,13 @@ public class CuentaController {
         app.post("/api/usuarios", ctx -> {
             Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO);
             Cuenta nueva = leerCuenta(ctx, true);
+            // Se avisa del nombre repetido antes de intentar insertar, para contestar con un texto claro.
             if (dao.existeUsername(nueva.getUsername())) {
                 throw new ApiException(409, CONFLICTO);
             }
             try {
+                // El DAO hashea la contraseña al hacer el INSERT; lo que se responde es la cuenta ya
+                // guardada, y el campo contraseña no viaja en ese JSON.
                 ctx.status(201).json(dao.crear(nueva));
             } catch (SQLException ex) {
                 throw traducir(ex, "No fue posible crear la cuenta.");
@@ -61,18 +71,24 @@ public class CuentaController {
                     && dao.existeUsername(cambios.getUsername())) {
                 throw new ApiException(409, CONFLICTO);
             }
+            // Nadie puede desactivarse a sí mismo ni borrarse: quedaría sin cuenta con rol ADMINISTRATIVO
+            // para volver a entrar, y esto se corta en el servidor aunque alguien mande el cambio a mano.
             if (esMiCuenta(ctx, id) && !cambios.isEstado()) {
                 throw new ApiException(400, "No puede desactivar su propia cuenta.");
             }
             cambios.setIdUsuario(id);
             try {
                 dao.actualizar(cambios);
+                // Al editar, la contraseña puede no venir o venir en blanco: significa "no la cambies",
+                // así que solo se guarda cuando se escribió una nueva.
                 if (cambios.getPassword() != null && !cambios.getPassword().isBlank()) {
                     dao.cambiarPassword(id, cambios.getPassword());
                 }
             } catch (SQLException ex) {
                 throw traducir(ex, "No fue posible actualizar la cuenta.");
             }
+            // Se vuelve a leer del DAO en vez de responder el objeto recibido: así la respuesta sale
+            // siempre sin contraseña y con los valores ya guardados.
             ctx.json(dao.leerPorId(id));
         });
 
@@ -93,11 +109,13 @@ public class CuentaController {
         });
     }
 
+    /** Compara el id pedido con el id del usuario que está en la sesión. */
     private boolean esMiCuenta(Context ctx, int id) {
         Integer mia = Sesion.idUsuario(ctx);
         return mia != null && mia == id;
     }
 
+    /** Lee la cuenta del JSON, la deja en condiciones (sin espacios, rol en mayúsculas) y la revisa. */
     private Cuenta leerCuenta(Context ctx, boolean esCreacion) {
         Cuenta cuenta = Http.leerJson(ctx, Cuenta.class);
         if (cuenta.getUsername() != null) {
@@ -115,6 +133,11 @@ public class CuentaController {
         return cuenta;
     }
 
+    /**
+     * Igual que en los demás módulos: el número de error de MySQL decide el código HTTP. Ficha
+     * inexistente es culpa del dato enviado (400), un usuario repetido es conflicto (409) y lo demás
+     * queda en 500 sin enseñar el detalle de la base de datos.
+     */
     private static ApiException traducir(SQLException ex, String mensajeGenerico) {
         if (Http.esReferenciaInexistente(ex)) {
             return new ApiException(400, "La ficha vinculada no existe: revise el id de estudiante o de profesor.");

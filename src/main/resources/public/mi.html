@@ -26,8 +26,10 @@
 
     <div id="message" role="status" aria-live="polite"></div>
 
+    <!-- Tarjetas con los datos de la persona conectada; las llena el script del final -->
     <section class="tarjetas" id="resumen" aria-label="Resumen"></section>
 
+    <!-- Los encabezados y el cuerpo de cada tabla quedan vacíos aquí: el script los escribe -->
     <section id="secciones">
       <h3 id="tituloSecciones">Mis secciones</h3>
       <div class="table-wrap">
@@ -58,6 +60,7 @@
       </div>
     </section>
 
+    <!-- Oculta hasta saber que quien entró es estudiante -->
     <section id="matriculas" hidden>
       <h3>Mis matrículas</h3>
       <div class="table-wrap">
@@ -71,6 +74,10 @@
 
   <script src="script.js"></script>
   <script>
+    /*
+     * Hoja de nombres: Java manda los datos del perfil con claves en inglés (rol, promedioGeneral…)
+     * y aquí se traduce cada una al rótulo que ve la persona en la tarjeta.
+     */
     const ETIQUETAS = {
       username: 'Usuario', rol: 'Rol', estudiante: 'Estudiante', email: 'Correo',
       carrera: 'Carrera', facultad: 'Facultad', profesor: 'Profesor',
@@ -80,6 +87,9 @@
       materiasPerdidasPorAsistencia: 'Perdidas por asistencia',
     };
 
+    // Pide un dato a la API REST con las cookies de la sesión y devuelve lo que llega convertido de
+    // JSON. El 403 quiere decir "ese rol no tiene permiso para ver esto", y se traduce en null para
+    // saltarse esa parte de la página; los demás fallos se lanzan para escribirlos arriba.
     async function leerJson(ruta) {
       const response = await fetch(`${API_BASE_URL}${ruta}`, { credentials: 'include' });
       if (!response.ok) {
@@ -89,6 +99,7 @@
       return response.json();
     }
 
+    // Escribe una tarjeta por cada dato suelto del perfil. Las listas se dejan para las tablas.
     function pintarResumen(perfil) {
       const contenedor = document.getElementById('resumen');
       contenedor.textContent = '';
@@ -105,6 +116,9 @@
       }
     }
 
+    // Escribe el encabezado y las filas de una de las tablas. Java manda las claves con mayúsculas
+    // internas (notaParcial1), así que aquí se pasan todas a minúsculas para poder compararlas con las
+    // columnas pedidas. Sin filas se deja un solo aviso de "Sin registros.".
     function pintarTabla(prefijo, filas, columnas) {
       const cabecera = document.getElementById(`encabezados${prefijo}`);
       const cuerpo = document.getElementById(`tabla${prefijo}`);
@@ -138,6 +152,11 @@
       }
     }
 
+    /*
+     * Primero se pide el perfil, y según el rol se muestran unas tablas u otras.
+     * El administrativo no necesita este resumen: consulta cada módulo desde el panel, así que aquí se
+     * ocultan las tablas y solo se le dejan sus datos de cuenta.
+     */
     async function iniciar() {
       let perfil;
       try {
@@ -158,6 +177,7 @@
       }
 
       const esEstudiante = perfil.rol === 'ESTUDIANTE';
+      // Al profesor estos datos le salen solo de los grupos que él dicta; se los filtra Java.
       const secciones = await leerJson('/api/mi/secciones');
       pintarTabla('Secciones', secciones, [
         { clave: 'curso', etiqueta: 'Curso' }, { clave: 'profesor', etiqueta: 'Profesor' },
@@ -166,6 +186,7 @@
       ]);
 
       const notas = await leerJson('/api/mi/calificaciones');
+      // El mismo dato cambia de nombre según quién lo vea: las suyas, o las de sus grupos.
       if (esEstudiante) document.getElementById('tituloNotas').textContent = 'Mis calificaciones';
       else document.getElementById('tituloNotas').textContent = 'Calificaciones de mis secciones';
       pintarTabla('Notas', notas, [
@@ -184,6 +205,7 @@
       ]);
 
       if (esEstudiante) {
+        // La tabla de matrículas viene oculta en el HTML: solo al estudiante le interesa la suya.
         document.getElementById('matriculas').hidden = false;
         const matriculas = await leerJson('/api/mi/matriculas');
         pintarTabla('Matriculas', matriculas, [

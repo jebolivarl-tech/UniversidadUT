@@ -8,6 +8,8 @@
   <title>Gestión de estudiantes</title>
   <link rel="stylesheet" href="marca.css" />
   <style>
+    /* Hoja de estilo de esta pantalla, que es la única con barra lateral a la izquierda.
+       Los colores viven en variables para poder repetirlos sin escribirlos dos veces. */
     :root {
       --azul1: #06402e;
       --azul2: #0b6e4f;
@@ -292,6 +294,7 @@
       .filter-row.secondary { grid-template-columns: 1fr 1fr; }
     }
 
+    /* Con la ventana angosta la barra lateral pasa arriba y todo se apila en una columna */
     @media (max-width: 760px) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { position: static; max-height: none; overflow-y: visible; padding: 12px; border-right: 0; border-bottom: 1px solid var(--gris-borde); }
@@ -324,6 +327,8 @@
           <small>Sistema Académico</small>
         </span>
       </div>
+      <!-- Repite los enlaces del panel, también ocultos y con data-roles: script.js deja visibles los del rol
+           de la sesión, aunque el servidor comprueba la sesión en cada petición igualmente -->
       <nav class="nav-modulos" aria-label="Navegación principal">
         <a class="nav-link" href="menu.html">Panel de control</a>
 
@@ -381,6 +386,7 @@
 
         <div class="workspace">
           <section class="panel" aria-labelledby="formTitle">
+            <!-- El ID lo pone la base de datos al guardar, por eso esa caja está bloqueada -->
             <h2 id="formTitle" class="panel-title">Formulario Estudiante</h2>
             <form id="estudianteForm">
               <label for="estudianteId">ID (automático)
@@ -410,6 +416,7 @@
             </form>
           </section>
 
+          <!-- Estas cajas no preguntan nada a Java: filtran la lista que ya se había leído -->
           <section class="panel" aria-label="Catálogo de estudiantes">
             <div class="filters">
               <div class="filter-row">

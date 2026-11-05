@@ -10,6 +10,13 @@ import java.util.List;
 import universidad.conexion.Conexion;
 import universidad.modelo.Curso;
 
+/**
+ * DAO de los cursos. Un curso guarda nombre, créditos y dos referencias numéricas: la carrera a la que
+ * pertenece y el profesor que lo administra. Se anotan los números y no los nombres para que, al cambiar
+ * algo, ningún curso se quede con el nombre viejo escrito encima.
+ * Las conexiones se piden al pool de conexiones y se devuelven al cerrar cada bloque. Las consultas SQL
+ * van con signos de interrogación y los valores se entregan aparte, así MySQL no los confunde con una orden.
+ */
 public class CursoDAOImpl implements CursoDAO {
 
     @Override
@@ -17,11 +24,13 @@ public class CursoDAOImpl implements CursoDAO {
         return consultar("SELECT * FROM cursos ORDER BY nombre", null);
     }
 
+    // Los cursos que ofrece una carrera.
     @Override
     public List<Curso> listarPorCarrera(int idCarrera) {
         return consultar("SELECT * FROM cursos WHERE id_carrera = ? ORDER BY nombre", idCarrera);
     }
 
+    // Los cursos a cargo de un profesor.
     @Override
     public List<Curso> listarPorProfesor(int idProfesor) {
         return consultar("SELECT * FROM cursos WHERE id_profesor = ? ORDER BY nombre", idProfesor);
@@ -33,6 +42,7 @@ public class CursoDAOImpl implements CursoDAO {
              PreparedStatement ps = cx.prepareStatement("SELECT * FROM cursos WHERE id_curso = ?")) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
+                // Sin filas devueltas no hay curso: se entrega null, no un objeto a medias.
                 return rs.next() ? mapear(rs) : null;
             }
         } catch (SQLException ex) {
@@ -40,6 +50,8 @@ public class CursoDAOImpl implements CursoDAO {
         }
     }
 
+    // MySQL pone el número del curso; se pide justo después de guardar y se copia al objeto para que la
+    // pantalla pueda seguir editando esa misma fila.
     @Override
     public int registrar(Curso c) throws SQLException {
         String sql = "INSERT INTO cursos (nombre, creditos, id_carrera, id_profesor) VALUES (?, ?, ?, ?)";
@@ -59,6 +71,8 @@ public class CursoDAOImpl implements CursoDAO {
         }
     }
 
+    // Un curso con créditos fuera de 1 a 10 lo rechaza la propia base, que lleva esa comprobación escrita
+    // en la tabla; el reparto de carga por periodo es lo que mira el servicio.
     @Override
     public int actualizar(Curso c) throws SQLException {
         String sql = "UPDATE cursos SET nombre = ?, creditos = ?, id_carrera = ?, id_profesor = ? WHERE id_curso = ?";
@@ -73,6 +87,8 @@ public class CursoDAOImpl implements CursoDAO {
         }
     }
 
+    // La base encadenó los grupos al curso, así que los grupos vacíos se van con él. Si alguno ya tiene
+    // estudiantes inscritos, MySQL no deja borrar nada: primero hay que retirar esas matrículas.
     @Override
     public int eliminar(int id) throws SQLException {
         try (Connection cx = Conexion.getConexion();
@@ -82,6 +98,8 @@ public class CursoDAOImpl implements CursoDAO {
         }
     }
 
+    // Compartido por los tres listar: con null no hay nada que entregar; con número se coloca en el
+    // primer hueco de la consulta.
     private List<Curso> consultar(String sql, Integer parametro) {
         List<Curso> lista = new ArrayList<>();
         try (Connection cx = Conexion.getConexion();
@@ -100,6 +118,7 @@ public class CursoDAOImpl implements CursoDAO {
         return lista;
     }
 
+    // Copia la fila que llegó de MySQL a un objeto Curso, con los nombres exactos de las columnas.
     private Curso mapear(ResultSet rs) throws SQLException {
         Curso c = new Curso();
         c.setIdCurso(rs.getInt("id_curso"));

@@ -10,8 +10,16 @@ import java.util.List;
 import universidad.conexion.Conexion;
 import universidad.modelo.Facultad;
 
+/**
+ * DAO de las facultades, la punta del árbol: facultad contiene carreras, carreras contienen cursos, cursos
+ * se dictan en secciones y en esas secciones caen las matrículas. Esta clase solo mueve la primera capa, y
+ * lo hace con órdenes SQL sobre MySQL a través de JDBC.
+ * El decano se guarda como texto escrito a mano, no como una ficha enlazada: es un dato de contacto, no
+ * alguien que tenga usuario en el sistema.
+ */
 public class FacultadDAOImpl implements FacultadDAO {
 
+    // Ordenadas por nombre porque la lista se muestra tal cual en pantalla.
     @Override
     public List<Facultad> listarTodos() {
         List<Facultad> lista = new ArrayList<>();
@@ -28,6 +36,7 @@ public class FacultadDAOImpl implements FacultadDAO {
         return lista;
     }
 
+    // Null cuando el id no existe en la tabla.
     @Override
     public Facultad leerPorId(int id) {
         String sql = "SELECT * FROM facultades WHERE id_facultad = ?";
@@ -42,6 +51,8 @@ public class FacultadDAOImpl implements FacultadDAO {
         }
     }
 
+    // MySQL numera la fila nueva; ese número se recoge justo después de guardar y se copia al objeto para
+    // que el formulario sepa qué facultad acaba de crear.
     @Override
     public int registrar(Facultad f) throws SQLException {
         String sql = "INSERT INTO facultades (nombre, decano) VALUES (?, ?)";
@@ -59,6 +70,8 @@ public class FacultadDAOImpl implements FacultadDAO {
         }
     }
 
+    // El nombre no admite repetidos; si alguien registra dos veces la misma facultad, MySQL contesta con
+    // error y ese error es el que ve el usuario, no un borrado silencioso.
     @Override
     public int actualizar(Facultad f) throws SQLException {
         String sql = "UPDATE facultades SET nombre = ?, decano = ? WHERE id_facultad = ?";
@@ -71,6 +84,8 @@ public class FacultadDAOImpl implements FacultadDAO {
         }
     }
 
+    // Se lleva por delante los profesores de la facultad, pero las carreras atan: si todavía hay alguna,
+    // MySQL rechaza el borrado para no dejarlas huérfanas.
     @Override
     public int eliminar(int id) throws SQLException {
         String sql = "DELETE FROM facultades WHERE id_facultad = ?";
@@ -81,6 +96,7 @@ public class FacultadDAOImpl implements FacultadDAO {
         }
     }
 
+    // Convierte la fila contestada por MySQL en objeto Facultad, buscando cada columna por su nombre.
     private Facultad mapear(ResultSet rs) throws SQLException {
         Facultad f = new Facultad();
         f.setIdFacultad(rs.getInt("id_facultad"));

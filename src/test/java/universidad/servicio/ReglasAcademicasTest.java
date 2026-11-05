@@ -12,7 +12,11 @@ import org.junit.jupiter.api.Test;
 import universidad.modelo.Asistencia;
 import universidad.modelo.Calificacion;
 
-/** Las cuentas de asistencia y de notas, sin base de datos de por medio. */
+/**
+ * Las cuentas de asistencia y de notas, sin base de datos de por medio: ReglasAcademicas solo
+ * hace números sobre listas de controles, no llama a ningún DAO (la clase que lee y escribe en la
+ * base por SQL) ni necesita MySQL. JUnit ejecuta estas comprobaciones.
+ */
 class ReglasAcademicasTest {
 
     @Test
@@ -63,6 +67,7 @@ class ReglasAcademicasTest {
 
     @Test
     void elTopeDeCreditosYElUmbralSonLosQueDiceLaDocumentacion() {
+        // los números que la documentación promete no cambian sin que nadie se dé cuenta
         assertEquals(20, ReglasAcademicas.CREDITOS_MAXIMOS_POR_PERIODO);
         assertEquals(0.75, ReglasAcademicas.PORCENTAJE_MINIMO_ASISTENCIA);
         assertEquals(4, ReglasAcademicas.CONTROLES_MINIMOS_PARA_PERDER_POR_ASISTENCIA);

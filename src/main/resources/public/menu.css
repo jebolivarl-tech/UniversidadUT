@@ -1,4 +1,5 @@
 @charset "UTF-8";
+/* Hoja del panel de control. Los colores y el aspecto de los botones ya vienen de marca.css. */
 
 body {
   min-height: 100vh;
@@ -8,6 +9,7 @@ body {
     var(--neutro-fondo);
 }
 
+/* Franja de arriba: se queda fija al bajar y deja ver un poco de lo que hay detrás */
 .barra {
   position: sticky;
   top: 0;
@@ -29,6 +31,7 @@ body {
   gap: 14px;
 }
 
+/* Cuadro redondeado donde se lee el usuario y el rol de la sesión; lo escribe script.js */
 .chip-usuario {
   margin: 0;
   padding: 8px 14px;
@@ -94,6 +97,7 @@ h1 {
   background: linear-gradient(90deg, var(--neutro-borde), transparent);
 }
 
+/* Tarjetas de módulo: de un ancho mínimo y tantas por fila como quepan en la pantalla */
 .grilla {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
@@ -117,6 +121,7 @@ h1 {
     border-color 0.25s ease, background-color 0.25s ease;
 }
 
+/* Rayita del color del módulo en el borde izquierdo; al pasar el ratón se estira a lo alto */
 .modulo::before {
   content: "";
   position: absolute;
@@ -203,6 +208,7 @@ h1 {
   outline-offset: 3px;
 }
 
+/* En pantallas de móvil la franja de arriba se acomoda y las tarjetas van una por fila */
 @media (max-width: 560px) {
   .barra {
     flex-wrap: wrap;

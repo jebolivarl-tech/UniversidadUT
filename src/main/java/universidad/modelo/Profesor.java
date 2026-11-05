@@ -2,6 +2,10 @@ package universidad.modelo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+/**
+ * La ficha de un profesor: nombre, apellido, correo y la facultad a la que pertenece.
+ * El correo es único en MySQL y puede quedar vacío; la facultad se guarda por su id.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Profesor {
 
@@ -11,9 +15,11 @@ public class Profesor {
     private String email;
     private int idFacultad;
 
+    // Vacío a propósito: así la arma Jackson al leer el JSON y el DAO al leer la fila.
     public Profesor() {
     }
 
+    /** Alta: el id lo pone la base de datos. */
     public Profesor(String nombre, String apellido, String email, int idFacultad) {
         this.nombre = nombre;
         this.apellido = apellido;

@@ -1,8 +1,10 @@
 package universidad.servicio;
 
 /**
- * Incumplimiento de una regla académica. Trae el código con el que debe responder la API:
- * 409 cuando el dato es válido pero la regla lo rechaza, 400 cuando falta una referencia.
+ * Se lanza cuando una regla académica no deja seguir: la sección está llena, el periodo no está
+ * abierto, el estudiante ya cursa esa materia. Lleva dentro el código con el que la API REST
+ * (los enlaces web a los que la página manda sus peticiones) debe responder: 409 si el dato es
+ * válido pero la regla lo rechaza, 400 si el formulario apunta a un registro que no existe.
  */
 public class ReglaVioladaException extends RuntimeException {
 

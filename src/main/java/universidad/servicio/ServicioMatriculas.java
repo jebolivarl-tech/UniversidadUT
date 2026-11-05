@@ -17,8 +17,9 @@ import universidad.modelo.Seccion;
 
 /**
  * Inscripción de estudiantes en secciones. El curso y el periodo de una matrícula nunca los decide
- * el formulario: siempre se derivan de la sección, para que no existan matrículas contradiciendo al
- * grupo en el que están.
+ * el formulario: siempre se derivan de la sección, para que no haya matrículas que contradigan al
+ * grupo en el que están. Cada regla consulta primero el estado real en la base a través de los DAO,
+ * las clases que leen y escriben MySQL con JDBC y SQL.
  */
 public class ServicioMatriculas {
 
@@ -39,7 +40,7 @@ public class ServicioMatriculas {
         this.asistencias = asistencias;
     }
 
-    /** Aplica las reglas de inscripción y deja la matrícula lista para guardar. */
+    /** Aplica las reglas de inscripción y deja la matrícula lista para guardar, sin escribir nada todavía. */
     public void preparar(Matricula matricula) {
         Estudiante estudiante = Referencias.estudiante(estudiantes, matricula.getIdEstudiante());
         Seccion seccion = Referencias.seccion(secciones, matricula.getIdSeccion());
@@ -78,15 +79,15 @@ public class ServicioMatriculas {
                 ? Matricula.APROBADO : Matricula.REPROBADO);
     }
 
+    /** Cuántos cupos libres quedan: el máximo de la sección menos los matriculados contados en la base. */
     public int cuposDisponibles(int idSeccion) {
         Seccion seccion = Referencias.seccion(secciones, idSeccion);
         return Math.max(0, seccion.getCupoMaximo() - matriculas.contarPorSeccion(idSeccion));
     }
 
     /**
-     * Cierra el círculo entre calificaciones y matrículas: cuando la definitiva está completa, la
-     * matrícula queda con esa nota y su estado. Devuelve la matrícula afectada, o null si el
-     * estudiante no tiene inscripción en esa sección.
+     * Cuando las tres notas existen, la matrícula recibe la definitiva y su estado.
+     * Devuelve null si el estudiante no tiene inscripción en esa sección o si falta alguna nota.
      */
     public Matricula sincronizarConCalificacion(Calificacion calificacion) {
         Matricula matricula = matriculas.leerPorEstudianteYSeccion(
@@ -100,6 +101,8 @@ public class ServicioMatriculas {
         try {
             matriculas.actualizar(matricula);
         } catch (SQLException ex) {
+            // El DAO abre la conexión JDBC y lanza SQLException si el UPDATE falla; aquí se envuelve
+            // para que la API devuelva un mensaje propio y no el detalle crudo de la base.
             throw new IllegalStateException("No fue posible sincronizar la nota de la matrícula.", ex);
         }
         return matricula;
@@ -109,6 +112,7 @@ public class ServicioMatriculas {
         return c.getNotaParcial1() != null && c.getNotaParcial2() != null && c.getNotaExamenFinal() != null;
     }
 
+    /** Con el periodo en INACTIVO o CERRADO no entran inscripciones nuevas ni cambios de sección. */
     private void asegurarPeriodoAbierto(PeriodoAcademico periodo) {
         String estado = periodo.getEstado() == null ? PeriodoAcademico.INACTIVO : periodo.getEstado().toUpperCase();
         if (!PeriodoAcademico.ACTIVO.equals(estado)) {
@@ -117,6 +121,7 @@ public class ServicioMatriculas {
         }
     }
 
+    /** Un estudiante solo puede matricularse en cursos de la carrera a la que pertenece. */
     private void asegurarCarreraCompatible(Estudiante estudiante, Curso curso) {
         if (curso.getIdCarrera() != estudiante.getIdCarrera()) {
             throw ReglaVioladaException.deConflicto("El curso «" + curso.getNombre() + "» no pertenece a la carrera "
@@ -124,6 +129,7 @@ public class ServicioMatriculas {
         }
     }
 
+    /** Nadie queda dos veces en la misma sección, ni repite el curso en el mismo periodo. */
     private void asegurarNoRepetida(Matricula matricula, Curso curso, PeriodoAcademico periodo) {
         Matricula existente = matriculas.leerPorEstudianteYSeccion(
                 matricula.getIdEstudiante(), matricula.getIdSeccion());
@@ -142,7 +148,10 @@ public class ServicioMatriculas {
         }
     }
 
+    /** El cupo no se puede pasar: se cuenta primero cuántos están hoy en la sección. */
     private void asegurarCupoDisponible(Seccion seccion, Matricula matricula) {
+        // Contar y guardar son dos pasos: si dos peticiones llegan juntas, un duplicado del mismo
+        // estudiante lo frena el índice único de la base, pero el último cupo puede quedarse corto.
         int ocupados = matriculas.contarPorSeccion(seccion.getIdSeccion());
         if (ocupados >= seccion.getCupoMaximo()) {
             throw ReglaVioladaException.deConflicto("La sección " + seccion.describir() + " está llena ("
@@ -150,6 +159,7 @@ public class ServicioMatriculas {
         }
     }
 
+    /** Nadie acumula más créditos de lo permitido en un mismo periodo. */
     private void asegurarTopeDeCreditos(Estudiante estudiante, Curso curso, PeriodoAcademico periodo,
             Matricula matricula) {
         int yaCursando = matriculas.listarPorEstudianteYPeriodo(estudiante.getIdEstudiante(), periodo.getNombre())

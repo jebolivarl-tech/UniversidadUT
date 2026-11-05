@@ -13,9 +13,17 @@ import java.sql.Date;
 import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Http reúne los arreglos pequeños que usan los controladores de la API REST (los puntos de
+ * entrada por HTTP que consume el frontend): leer los parámetros de la dirección y traducir los
+ * errores de MySQL en mensajes entendibles. No hace falta levantar el servidor: Mockito — la
+ * librería que fabrica imitaciones de objetos — arma una imitación del Context de Javalin (el
+ * objeto que representa una petición entrante) y se le pacta qué responder.
+ */
 class HttpTest {
 
     private static Context conQueryParam(String nombre, String valor) {
+        // petición HTTP fingida que solo sabe responder por un parámetro de la dirección
         Context ctx = mock(Context.class);
         when(ctx.queryParam(nombre)).thenReturn(valor);
         return ctx;
@@ -47,6 +55,7 @@ class HttpTest {
 
     @Test
     void distingueDuplicadoDeClaveForanea() {
+        // MySQL etiqueta sus errores con un código SQL: 1062 es dato repetido, 1452 es apuntar a una fila inexistente
         assertTrue(Http.esDuplicado(new SQLException("", "23000", 1062)));
         assertFalse(Http.esReferenciaInexistente(new SQLException("", "23000", 1062)));
 

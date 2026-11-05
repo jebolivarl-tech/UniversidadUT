@@ -8,6 +8,7 @@
   <link rel="icon" type="image/png" href="logo-marca-ut.png" />
   <link rel="stylesheet" href="marca.css" />
   <style>
+    /* Estilos de esta sola página: la caja centrada y los colores salen de marca.css */
     body {
       min-height: 100vh;
       display: grid;
@@ -129,6 +130,9 @@
     <h2>Iniciar sesión</h2>
     <p class="subtitulo">Use las credenciales asignadas por la oficina de registro.</p>
 
+    <!-- El login no manda el formulario por la barra de direcciones: script.js lee estas dos cajas por
+         su id, escribe los datos como JSON y los envía a /api/login. Java cierra cualquier sesión
+         anterior y abre una nueva con el rol, para que no queden datos del usuario previo. -->
     <form id="loginForm">
       <label for="username">Usuario</label>
       <input id="username" name="username" type="text" placeholder="Escriba su usuario" autocomplete="username" required />
@@ -139,6 +143,7 @@
       <button class="boton" type="submit">Ingresar</button>
     </form>
 
+    <!-- Hueco donde script.js escribe el aviso, verde si entró bien y rojo con el motivo de Java -->
     <div id="message" role="status" aria-live="polite"></div>
     <p class="pie">Acceso exclusivo para el equipo local donde está corriendo el servidor</p>
   </div>

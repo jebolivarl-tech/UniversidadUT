@@ -11,7 +11,10 @@ import universidad.modelo.Asistencia;
 import universidad.modelo.Calificacion;
 import universidad.modelo.Matricula;
 
-/** Evaluación continua: el promedio y el estado los fija el servidor, nunca quien escribe la nota. */
+/**
+ * Evaluación continua: el promedio y el estado los fija el servidor, nunca quien escribe la nota.
+ * Se prueba contra los DAO pactados en Escenario, sin llegar a MySQL.
+ */
 class ServicioCalificacionesTest {
 
     private final Escenario escenario = new Escenario();
@@ -23,6 +26,7 @@ class ServicioCalificacionesTest {
 
         escenario.calificacionesServicio.preparar(notas);
 
+        // 3.5·0.3 + 4.0·0.3 + 3.8·0.4 = 3.77: pesos 30/30/40, y con 3.0 o más se aprueba
         assertEquals(3.77, notas.getPromedioFinal());
         assertEquals(Calificacion.APROBADO, notas.getEstado());
     }
@@ -56,6 +60,7 @@ class ServicioCalificacionesTest {
 
         escenario.calificacionesServicio.preparar(notas);
 
+        // cuatro faltas sin justificar dejan la asistencia en 0 %: el promedio 5.0 no lo evita
         assertEquals(Calificacion.PERDIDO_POR_FALTA_DE_ASISTENCIA, notas.getEstado());
     }
 
@@ -80,8 +85,10 @@ class ServicioCalificacionesTest {
         escenario.calificacionesServicio.preparar(notas);
         escenario.calificacionesServicio.propagarNotaDefinitiva(notas);
 
+        // con la definitiva guardada, la nota 3.77 queda copiada en la matrícula correspondiente
         assertEquals(3.77, matricula.getNota());
         assertEquals(Matricula.APROBADO, matricula.getEstado());
+        // y se comprueba que la matrícula actualizada se haya enviado al DAO para guardarla
         verify(escenario.matriculas).actualizar(matricula);
     }
 
@@ -93,6 +100,7 @@ class ServicioCalificacionesTest {
 
         escenario.calificacionesServicio.preparar(notas);
 
+        // aunque el JSON (el texto con el que el frontend manda los datos) traiga otro estado, el servidor lo reescribe
         assertEquals(Calificacion.APROBADO, notas.getEstado());
     }
 }

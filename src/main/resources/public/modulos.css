@@ -1,4 +1,6 @@
 @charset "UTF-8";
+/* Hoja común de las pantallas de registro. Se apoya en marca.css y usa el color del módulo que
+   traiga la variable --acento, la misma que elige la página por su data-modulo. */
 
 body {
   padding: 24px 18px 48px;
@@ -67,6 +69,7 @@ h3 {
   margin: 6px 2px 14px;
 }
 
+/* Cuadros del formulario y de los filtros: se reparten en columnas según el ancho disponible */
 .filtros,
 .formulario {
   display: grid;
@@ -197,6 +200,7 @@ button.delete:hover { background: #7f1d14; }
   font-weight: 600;
 }
 
+/* La tabla se desborda hacia los lados en pantallas angostas, en vez de aplastar las columnas */
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--neutro-borde);
@@ -239,7 +243,9 @@ tbody tr.selected {
   box-shadow: inset 3px 0 0 var(--acento);
 }
 
-/* Estado académico derivado por el servidor: se colorea, nunca lo escribe el usuario. */
+/* Colores del estado académico de la nota. Ese estado lo calcula Java al guardar, la pantalla nunca
+   lo escribe. Ojo: hoy modulos.js escribe la clase separada con espacio ("estado aprobado") y estas
+   reglas la buscan con guion (estado-aprobado), así que el color todavía no llega a aplicarse. */
 td.estado {
   white-space: nowrap;
   font-weight: 600;
@@ -258,6 +264,7 @@ td.actions button {
   font-size: 0.84rem;
 }
 
+/* Tarjetas de resumen de la pantalla "Mi información" */
 .tarjetas {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -298,6 +305,7 @@ td.actions button {
   text-align: center;
 }
 
+/* Con la ventana angosta todo se apila en una columna y el margen del encabezado se ajusta */
 @media (max-width: 720px) {
   body { padding: 12px 8px 32px; }
   .container { padding: 18px; }

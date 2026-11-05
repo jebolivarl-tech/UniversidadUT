@@ -13,8 +13,9 @@ import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Seccion;
 
 /**
- * Control de asistencia a clase. Solo se puede marcar asistencia de quien está matriculado en la
- * sección y dentro de las fechas del periodo.
+ * Pasa lista y corrige registros de asistencia. Solo se marca asistencia de quien está matriculado
+ * en la sección, en una fecha que cae dentro del periodo, y una sola vez por día. Cada registro se
+ * guarda con un DAO, la clase que escribe en MySQL usando JDBC y SQL.
  */
 public class ServicioAsistencias {
 
@@ -33,6 +34,7 @@ public class ServicioAsistencias {
         this.periodos = periodos;
     }
 
+    /** Revisa todo el registro antes de guardarlo; si algo falla, nada se escribe. */
     public void preparar(Asistencia asistencia) {
         asistencia.setEstado(asistencia.getEstado().toUpperCase());
         Estudiante estudiante = Referencias.estudiante(estudiantes, asistencia.getIdEstudiante());
@@ -42,6 +44,7 @@ public class ServicioAsistencias {
         asegurarUnRegistroPorDia(asistencia, seccion);
     }
 
+    /** Nadie que no esté matriculado en la sección puede figurar en la lista de ese grupo. */
     private void asegurarMatriculado(Estudiante estudiante, Seccion seccion) {
         Matricula matricula = matriculas.leerPorEstudianteYSeccion(
                 estudiante.getIdEstudiante(), seccion.getIdSeccion());
@@ -52,6 +55,7 @@ public class ServicioAsistencias {
         }
     }
 
+    /** La fecha del control debe caer entre el inicio y el fin del periodo al que pertenece la sección. */
     private void asegurarFechaDelPeriodo(Asistencia asistencia, Seccion seccion) {
         PeriodoAcademico periodo = Referencias.periodo(periodos, seccion.getIdPeriodo());
         Date fecha = asistencia.getFecha();
@@ -63,6 +67,7 @@ public class ServicioAsistencias {
         }
     }
 
+    /** Un estudiante no puede tener dos controles el mismo día: se consulta la lista antes de escribir. */
     private void asegurarUnRegistroPorDia(Asistencia asistencia, Seccion seccion) {
         boolean repetida = asistencias.listarPorSeccionYFecha(seccion.getIdSeccion(), asistencia.getFecha())
                 .stream()

@@ -22,10 +22,13 @@ import universidad.modelo.Profesor;
 import universidad.modelo.Seccion;
 
 /**
- * Doble en memoria de la base de datos para probar las reglas sin MySQL: los DAOs son dobles de
- * Mockito y aquí están los constructores cortos de cada modelo. El escenario trae el camino feliz
- * (estudiante de la carrera 1, sección del curso 5, periodo ACTIVO con cupo) y cada prueba rompe
- * una sola regla.
+ * Para probar las reglas académicas sin necesitar un MySQL encendido: Mockito — la librería que
+ * fabrica imitaciones de objetos — arma imitaciones de los DAO, las clases que leen y escriben en
+ * la base de datos por JDBC/SQL, y a cada imitación se le pacta aquí qué responder. Así se
+ * comprueba solo la lógica de la aplicación y con esto el servidor de pruebas no llega a la base.
+ * El escenario trae el camino feliz (estudiante de la carrera 1, sección del curso 5, periodo
+ * ACTIVO con cupo) y cada prueba rompe una sola regla. También reúne los constructores cortos de
+ * cada modelo.
  */
 final class Escenario {
 
@@ -117,14 +120,14 @@ final class Escenario {
         return m;
     }
 
-    /** Matrícula ya guardada en la sección del escenario, lista para que el servicio la encuentre por id. */
+    /** Matrícula como si ya estuviera guardada: se le pacta al DAO que la devuelva cuando la pidan por id. */
     Matricula matriculaGuardada(int idMatricula, Double nota) {
         Matricula m = unaMatricula(idMatricula, nota);
         when(matriculas.leerPorId(idMatricula)).thenReturn(m);
         return m;
     }
 
-    /** La misma matrícula pero sin avisar al doble: se usa cuando la devuelve otra stub. */
+    /** La misma matrícula, armada a mano sin pactarle nada al DAO: se usa cuando la entrega otra imitación. */
     Matricula unaMatricula(int idMatricula, Double nota) {
         Matricula m = inscripcion(nota);
         m.setIdMatricula(idMatricula);
@@ -140,7 +143,7 @@ final class Escenario {
         return m;
     }
 
-    /** El estudiante ya está matriculado en la sección del escenario (lo que exigen asistencia y notas). */
+    /** Se le pacta al DAO encontrar al estudiante ya inscrito en la sección del escenario (lo que exigen asistencia y notas). */
     void estaMatriculado() {
         when(matriculas.leerPorEstudianteYSeccion(ESTUDIANTE, SECCION))
                 .thenReturn(unaMatricula(100, null));
@@ -170,12 +173,12 @@ final class Escenario {
         when(matriculas.listarPorEstudianteYPeriodo(ESTUDIANTE, PERIODO_NOMBRE)).thenReturn(List.of(previa));
     }
 
-    /** Grupos que la base devuelve como inscribibles para el estudiante del escenario. */
+    /** Grupos que el DAO dice que el estudiante del escenario puede inscribirse. */
     void inscribibles(Seccion... grupos) {
         when(secciones.listarInscribiblesPara(ESTUDIANTE)).thenReturn(List.of(grupos));
     }
 
-    /** Matrículas del estudiante en el periodo: las que suman contra el tope de los inscribibles. */
+    /** Matrículas previas del estudiante en el periodo: sus créditos son los que cuentan contra el tope. */
     void inscritasEnElPeriodo(int... creditos) {
         List<Matricula> previas = new ArrayList<>();
         for (int i = 0; i < creditos.length; i++) {
@@ -191,7 +194,7 @@ final class Escenario {
         when(matriculas.listarPorEstudiante(ESTUDIANTE)).thenReturn(previas);
     }
 
-    /** Otro grupo del mismo curso y periodo: es la que hace chocar la regla del aula. */
+    /** Otro grupo del mismo curso y periodo: con él se hace chocar la prueba de la aula repetida. */
     void otraSeccionEnElPeriodo(int idSeccion, String aula) {
         List<Seccion> grupos = new ArrayList<>(secciones.listarPorPeriodo(PERIODO));
         grupos.add(seccion(idSeccion, aula, 30));
@@ -210,7 +213,7 @@ final class Escenario {
         when(asistencias.listarPorSeccionYFecha(SECCION, HOY)).thenReturn(controles);
     }
 
-    /** Cursos ya inscrito en el periodo: cada uno suma sus créditos al tope. */
+    /** Cursos ya inscritos en el periodo: cada uno suma sus créditos contra el tope de 20. */
     void yaInscritoEnCursosDeCreditos(int... creditos) {
         List<Matricula> previas = new ArrayList<>();
         for (int i = 0; i < creditos.length; i++) {

@@ -4,8 +4,9 @@ import java.util.List;
 import universidad.modelo.Asistencia;
 
 /**
- * Los números que definen cómo se evalúa en la universidad. Cambian una vez por año académico, no
- * una vez por despliegue, así que viven en un solo lugar y no repartidos por los formularios.
+ * Los números que definen cómo se evalúa en la universidad: el porcentaje mínimo de asistencia, el
+ * tope de créditos y la forma de redondear notas. Cambian una vez por año académico, no con cada
+ * versión del programa, así que viven juntos aquí en lugar de repartidos por los formularios.
  */
 public final class ReglasAcademicas {
 
@@ -26,10 +27,7 @@ public final class ReglasAcademicas {
         return estado != null && Asistencia.FALTO.equalsIgnoreCase(estado.trim());
     }
 
-    /**
-     * Porcentaje de asistencia sobre los controles registrados. Con lista vacía devuelve 1.0 para
-     * que "sin clases dictadas todavía" no se lea como "perdió el curso".
-     */
+    /** Porcentaje de asistencia; sin controles da 1.0: no haber clases no es haber perdido. */
     public static double porcentajeDeAsistencia(List<Asistencia> controles) {
         if (controles == null || controles.isEmpty()) {
             return 1.0;
@@ -38,6 +36,7 @@ public final class ReglasAcademicas {
         return (controles.size() - faltas) / (double) controles.size();
     }
 
+    /** Solo se pierde por inasistencia con controles suficientes y un porcentaje bajo el mínimo. */
     public static boolean pierdePorAsistencia(List<Asistencia> controles) {
         if (controles == null || controles.size() < CONTROLES_MINIMOS_PARA_PERDER_POR_ASISTENCIA) {
             return false;

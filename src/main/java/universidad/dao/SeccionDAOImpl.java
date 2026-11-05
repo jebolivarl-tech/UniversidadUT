@@ -10,9 +10,18 @@ import java.util.List;
 import universidad.conexion.Conexion;
 import universidad.modelo.Seccion;
 
+/**
+ * DAO de las secciones. Una sección es un grupo: un curso, dictado por un profesor en un periodo, en un
+ * aula y con cupo limitado. La tabla secciones no guarda ninguno de esos nombres, solo sus números, y por
+ * eso casi todas las consultas de esta clase llevan JOIN: MySQL arma la fila junto con las filas hermanas
+ * de cursos y de periodos, y la pantalla recibe el nombre del curso y del periodo sin otra consulta suelta.
+ * "Sección" aquí es el grupo de clase, no la sesión con la que el navegador recuerda quién entró.
+ */
 public class SeccionDAOImpl implements SeccionDAO {
 
-    /** Cada sección se devuelve con el nombre del curso, el del periodo y sus cupos ya ocupados. */
+    // La consulta que comparten casi todos los listar. Trae tres cosas de más: el nombre del curso, el del
+    // periodo (ambos por JOIN, porque la tabla solo guarda sus números) y cuántas matrículas tiene el grupo,
+    // que es el cupo ya ocupado.
     private static final String BASE = """
             SELECT s.id_seccion, s.id_curso, s.id_profesor, s.id_periodo, s.aula, s.cupo_maximo,
                    c.nombre AS nombre_curso, p.nombre AS nombre_periodo,
@@ -22,6 +31,8 @@ public class SeccionDAOImpl implements SeccionDAO {
             JOIN periodos_academicos p ON p.id_periodo = s.id_periodo
             """;
 
+    // Grupos en los que el estudiante está inscrito. Al cruzarse con matrículas, cada inscripción aporta su
+    // renglón, y DISTINCT quita el grupo repetido por si llegara a duplicarse.
     private static final String POR_ESTUDIANTE = """
             SELECT DISTINCT s.id_seccion, s.id_curso, s.id_profesor, s.id_periodo, s.aula, s.cupo_maximo,
                    c.nombre AS nombre_curso, p.nombre AS nombre_periodo,
@@ -39,11 +50,14 @@ public class SeccionDAOImpl implements SeccionDAO {
         return consultar(BASE + " ORDER BY s.id_periodo DESC, s.id_seccion", null);
     }
 
+    // Los grupos que tiene a cargo: la pantalla del profesor.
     @Override
     public List<Seccion> listarPorProfesor(int idProfesor) {
         return consultar(BASE + " WHERE s.id_profesor = ? ORDER BY s.id_periodo DESC, s.id_seccion", idProfesor);
     }
 
+    // Los grupos de un periodo. El servicio los usa para comparar: dos grupos del mismo curso no pueden
+    // partirse el aula en el mismo periodo.
     @Override
     public List<Seccion> listarPorPeriodo(int idPeriodo) {
         return consultar(BASE + " WHERE s.id_periodo = ? ORDER BY s.id_seccion", idPeriodo);
@@ -55,9 +69,13 @@ public class SeccionDAOImpl implements SeccionDAO {
     }
 
     /**
-     * Grupos que el estudiante podría inscribir: de su carrera, con el periodo abierto, sin tener ya
-     * una matrícula en ese curso y periodo (`uq_matricula`) y con cupo disponible. El tope de créditos
-     * lo filtra el servicio, que es donde están las reglas.
+     * Los grupos que este estudiante todavía puede inscribir. Cuatro filtros, cada uno con su motivo: se
+     * cruza con estudiantes para dejar solo los cursos de su carrera; se exige que el periodo esté ACTIVO,
+     * porque un periodo cerrado no admite inscripciones; se descarta todo grupo cuyo curso ya tenga matrícula
+     * del estudiante en ese mismo periodo, que es la regla uq_matricula de la base (se compara por el nombre
+     * del periodo, porque así lo guarda la matrícula); y se pide cupo por debajo del máximo. El tope de
+     * créditos no está aquí a propósito: esa regla vive en el servicio, que es donde se suman los créditos
+     * de todos los periodos.
      */
     @Override
     public List<Seccion> listarInscribiblesPara(int idEstudiante) {
@@ -81,6 +99,8 @@ public class SeccionDAOImpl implements SeccionDAO {
              PreparedStatement ps = cx.prepareStatement(BASE + " WHERE s.id_seccion = ?")) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
+                // Trae null si ese número de grupo no existe; con el JOIN, la respuesta es una fila ya
+                // servida con los nombres que faltan.
                 return rs.next() ? mapear(rs) : null;
             }
         } catch (SQLException ex) {
@@ -88,6 +108,9 @@ public class SeccionDAOImpl implements SeccionDAO {
         }
     }
 
+    // La base tiene una clave única sobre curso, periodo y aula, así que repetir el mismo grupo lo rechaza
+    // MySQL. El servicio comprueba lo mismo antes, para avisar con nombres en vez de dejar un error de la
+    // base sin explicar.
     @Override
     public int registrar(Seccion s) throws SQLException {
         String sql = "INSERT INTO secciones (id_curso, id_profesor, id_periodo, aula, cupo_maximo) VALUES (?, ?, ?, ?, ?)";
@@ -117,12 +140,15 @@ public class SeccionDAOImpl implements SeccionDAO {
             ps.setInt(2, s.getIdProfesor());
             ps.setInt(3, s.getIdPeriodo());
             ps.setString(4, s.getAula());
+            // Bajar el cupo por debajo de los que ya están inscritos lo revisa el servicio antes de llegar
+            // aquí; MySQL no sabe comparar dos tablas en esa regla.
             ps.setInt(5, s.getCupoMaximo());
             ps.setInt(6, s.getIdSeccion());
             return ps.executeUpdate();
         }
     }
 
+    // Con matriculados encima, MySQL no la deja borrar (la relación con matrículas está en modo restrictivo).
     @Override
     public int eliminar(int id) throws SQLException {
         try (Connection cx = Conexion.getConexion();
@@ -132,6 +158,7 @@ public class SeccionDAOImpl implements SeccionDAO {
         }
     }
 
+    // El común de los listar: null es que la consulta no tiene hueco donde meter.
     private List<Seccion> consultar(String sql, Integer parametro) {
         List<Seccion> lista = new ArrayList<>();
         try (Connection cx = Conexion.getConexion();
@@ -150,6 +177,8 @@ public class SeccionDAOImpl implements SeccionDAO {
         return lista;
     }
 
+    // La fila del JOIN llega mezclada: columnas del grupo, los dos nombres prestados y el recuento de
+    // matrículas. Aquí cada una entra en su campo.
     private Seccion mapear(ResultSet rs) throws SQLException {
         Seccion s = new Seccion();
         s.setIdSeccion(rs.getInt("id_seccion"));

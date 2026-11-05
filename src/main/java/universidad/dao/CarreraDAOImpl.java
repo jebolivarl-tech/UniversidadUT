@@ -10,11 +10,21 @@ import java.util.List;
 import universidad.conexion.Conexion;
 import universidad.modelo.Carrera;
 
+/**
+ * DAO de las carreras: la tabla carreras solo guarda nombre y a qué facultad pertenece, con un número que
+ * pone MySQL. Todo lo que se mueve aquí son órdenes SQL enviadas por JDBC, y cada conexión sale del pool de
+ * conexiones para no abrir una nueva por consulta.
+ * Como la columna del nombre no admite repetidos, dos carreras con el mismo nombre hacen que MySQL
+ * rechace el guardado y el error suba hasta el formulario.
+ */
 public class CarreraDAOImpl implements CarreraDAO {
 
+    // No hay nada que preparar antes de consultar: la clase no guarda estado, solo manda órdenes.
     public CarreraDAOImpl() {
     }
 
+    // Tabla completa y sin filtro. Casi siempre la llaman para traducir números por nombre al armar
+    // desplegables y respuestas.
     @Override
     public List<Carrera> listarTodos() {
         List<Carrera> lista = new ArrayList<>();
@@ -31,6 +41,7 @@ public class CarreraDAOImpl implements CarreraDAO {
         return lista;
     }
 
+    // Si el id no está, la variable se queda como llegó: sin carrera. El controlador decide el 404.
     @Override
     public Carrera leerPorId(int id) {
         String sql = "SELECT * FROM carreras WHERE id_carrera = ?";
@@ -49,6 +60,8 @@ public class CarreraDAOImpl implements CarreraDAO {
         return carrera;
     }
 
+    // El número de la carrera lo escoge MySQL, no la aplicación. Al pedir los datos recién guardados, el
+    // objeto se queda con ese número y el formulario ya puede editar la fila que acaba de crear.
     @Override
     public int registrar(Carrera c) throws SQLException {
         String sql = "INSERT INTO carreras (nombre, id_facultad) VALUES (?, ?)";
@@ -67,6 +80,8 @@ public class CarreraDAOImpl implements CarreraDAO {
         }
     }
 
+    // El WHERE del final no cambia ningún dato: solo le dice a MySQL cuál carrera es la que tiene que
+    // tocar con los valores de arriba.
     @Override
     public int actualizar(Carrera c) throws SQLException {
         String sql = "UPDATE carreras SET nombre = ?, id_facultad = ? WHERE id_carrera = ?";
@@ -79,6 +94,8 @@ public class CarreraDAOImpl implements CarreraDAO {
         }
     }
 
+    // Borra una sola fila y dice cuántas fueron. Si la carrera todavía tiene estudiantes, MySQL lo
+    // impide para no dejar alumnos colgando; ese error sube y la pantalla lo muestra.
     @Override
     public int eliminar(int id) throws SQLException {
         String sql = "DELETE FROM carreras WHERE id_carrera = ?";
@@ -89,6 +106,7 @@ public class CarreraDAOImpl implements CarreraDAO {
         }
     }
 
+    // Convierte la fila que contestó MySQL en objeto Carrera, columna por columna.
     private Carrera mapearCarrera(ResultSet rs) throws SQLException {
         Carrera c = new Carrera();
         c.setIdCarrera(rs.getInt("id_carrera"));

@@ -15,10 +15,11 @@ import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Seccion;
 
 /**
- * Reglas de apertura de grupos y del curso que los agrupa: un grupo pertenece a un curso y a un
- * periodo, comparte aula solo si nadie la tiene en ese mismo curso y periodo, su cupo no puede
- * quedar por debajo de la gente que ya matriculó, y ninguno de los dos se borra mientras haya
- * matrículas encima.
+ * Reglas para abrir, modificar y borrar grupos. Un grupo pertenece a un curso y a un periodo; dos
+ * grupos del mismo curso no pueden usar la misma aula en el mismo periodo; el cupo no puede bajar
+ * de la cantidad de gente que ya matriculó; y ni el grupo ni el curso se borran mientras haya
+ * matrículas encima. Las cuentas y listados que necesitan estas reglas los traen los DAO, las
+ * clases que consultan MySQL con JDBC y SQL.
  */
 public class ServicioSecciones {
 
@@ -39,7 +40,7 @@ public class ServicioSecciones {
         this.estudiantes = estudiantes;
     }
 
-    /** Valida la escritura y deja la sección lista para guardar. */
+    /** Antes de guardar, exige que el curso, el profesor y el periodo existan y revisa aula y cupo. */
     public void preparar(Seccion seccion) {
         Referencias.curso(cursos, seccion.getIdCurso());
         Referencias.profesor(profesores, seccion.getIdProfesor());
@@ -58,10 +59,7 @@ public class ServicioSecciones {
         }
     }
 
-    /**
-     * Borrar el curso arrastraría en cascada sus grupos y las matrículas ya cargadas de los
-     * estudiantes, así que mientras haya matrículas el curso no se elimina.
-     */
+    /** No se borra un curso con matrículas: la base las borraría en cascada junto con los grupos. */
     public void validarEliminacionDeCurso(int idCurso) {
         int matriculadas = matriculas.listarPorCurso(idCurso).size();
         if (matriculadas > 0) {
@@ -72,10 +70,10 @@ public class ServicioSecciones {
     }
 
     /**
-     * Grupos que el estudiante puede elegir. La consulta ya deja fuera los de otra carrera, los de un
-     * periodo cerrado, los cursos que él ya cursa en ese periodo y los grupos llenos; aquí se caen
-     * además los que lo pasarían del tope de créditos, para que el formulario no ofrezca una
-     * inscripción que el servidor tendría que rechazar.
+     * Grupos que el estudiante puede elegir. La consulta SQL del DAO ya deja fuera los de otra
+     * carrera, los de un periodo cerrado, los cursos que él ya cursa en ese periodo y los grupos
+     * llenos; aquí se caen además los que lo pasarían del tope de créditos, para que el formulario
+     * no ofrezca una inscripción que el servidor tendría que rechazar después.
      */
     public List<Seccion> inscribiblesPara(int idEstudiante) {
         Referencias.estudiante(estudiantes, idEstudiante);
@@ -102,6 +100,7 @@ public class ServicioSecciones {
         return curso == null ? 0 : curso.getCreditos();
     }
 
+    /** Dos grupos del mismo curso no comparten aula en el mismo periodo: la segunda se rechaza. */
     private void asegurarAulaLibre(Seccion seccion) {
         String aula = seccion.getAula();
         if (aula == null || aula.isBlank()) {
@@ -118,6 +117,7 @@ public class ServicioSecciones {
         }
     }
 
+    /** El cupo máximo no puede bajar de los estudiantes que ya tienen matrícula en esta sección. */
     private void asegurarCupoCoherente(Seccion seccion) {
         if (seccion.getIdSeccion() == 0) {
             return; // alta: nadie puede estar matriculado todavía

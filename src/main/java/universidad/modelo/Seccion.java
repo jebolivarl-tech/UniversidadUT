@@ -5,8 +5,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * Grupo de un curso en un periodo: quién lo dicta, dónde y cuántos caben. Los tres últimos campos
- * (nombreCurso, nombrePeriodo, cuposOcupados) los aporta la consulta y son de solo lectura.
+ * Un grupo de un curso en un periodo: qué asignatura es, quién la dicta, en qué aula y cuántos caben.
+ * Los tres últimos campos (nombre del curso, nombre del periodo y cupos ocupados) no se guardan en la
+ * fila: los trae la consulta SQL que acompaña al DAO, uniendo las tablas de cursos y periodos y contando
+ * las matrículas ya inscritas. Por eso son de solo lectura hacia afuera: si el cliente los mandara, podría
+ * inventarse un nombre o fingir que hay cupo libre.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Seccion {
@@ -16,14 +19,17 @@ public class Seccion {
     private int idProfesor;
     private int idPeriodo;
     private String aula;
+    // El tope lo vigila MySQL (entre 1 y 200); los ocupados reales son los que cuenta la consulta.
     private int cupoMaximo;
     private String nombreCurso;
     private String nombrePeriodo;
     private int cuposOcupados;
 
+    // Vacío a propósito: así la arma Jackson al leer el JSON y el DAO al leer la fila.
     public Seccion() {
     }
 
+    /** Alta: el id lo pone la base de datos; del curso, del profesor y del periodo solo se manda su número. */
     public Seccion(int idCurso, int idProfesor, int idPeriodo, String aula, int cupoMaximo) {
         this.idCurso = idCurso;
         this.idProfesor = idProfesor;
@@ -66,7 +72,10 @@ public class Seccion {
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public void setCuposOcupados(int cuposOcupados) { this.cuposOcupados = cuposOcupados; }
 
-    /** Texto que identifica la sección en combos y reportes. */
+    /**
+     * Texto que identifica la sección en combos y reportes, del tipo "Cálculo · Aula 3 · 2025-2 (18/25)".
+     * Se arma al momento y nunca se guarda, por eso va marcada para que no salga en el JSON.
+     */
     @JsonIgnore
     public String describir() {
         StringBuilder sb = new StringBuilder();

@@ -11,7 +11,12 @@ import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Profesor;
 import universidad.modelo.Seccion;
 
-/** Carga las referencias que declara un formulario, con el mensaje que la API debe devolver. */
+/**
+ * Busca en MySQL al estudiante, curso, profesor, periodo o sección que un formulario señala por id.
+ * Cada DAO es la clase que usa JDBC y SQL para leer y escribir una tabla; de ahí solo pedimos la
+ * lectura por id. Si el registro no existe, lanzamos el error con el mensaje exacto que la API REST
+ * (los enlaces web a los que la página manda sus peticiones) debe devolver, antes de tocar datos.
+ */
 final class Referencias {
 
     private Referencias() {

@@ -8,7 +8,11 @@ import org.junit.jupiter.api.Test;
 import universidad.modelo.Asistencia;
 import universidad.modelo.Matricula;
 
-/** Pase de lista: solo a matriculados, solo en fechas del periodo y un solo registro por día. */
+/**
+ * Pase de lista: solo a matriculados, solo en fechas del periodo y un solo registro por día.
+ * Corre contra los DAO que Escenario ya trae pactados, así que no hace falta un MySQL encendido.
+ * El código 409 de HTTP avisa cuando la petición choca con lo que ya está en la base.
+ */
 class ServicioAsistenciasTest {
 
     private final Escenario escenario = new Escenario();
@@ -20,6 +24,7 @@ class ServicioAsistenciasTest {
 
         escenario.asistenciasServicio.preparar(control);
 
+        // "falto" escrito en minúsculas queda guardado como FALTO, y en la tabla manda un solo texto
         assertEquals(Asistencia.FALTO, control.getEstado());
     }
 
@@ -68,6 +73,7 @@ class ServicioAsistenciasTest {
 
         escenario.asistenciasServicio.preparar(corregido);
 
+        // corregir el registro del propio día es válido y no cuenta como repetido
         assertEquals(Asistencia.FALTO, corregido.getEstado());
     }
 
@@ -79,6 +85,7 @@ class ServicioAsistenciasTest {
 
         escenario.matriculasServicio.preparar(matricula);
 
+        // con menos de cuatro controles la regla del 75 % de asistencia todavía no puede fallar el curso
         assertEquals(Matricula.APROBADO, matricula.getEstado());
     }
 }

@@ -14,7 +14,10 @@ import universidad.modelo.PeriodoAcademico;
 
 /**
  * Reglas de inscripción: la sección manda, el periodo tiene que estar abierto, la carrera tiene que
- * coincidir, el cupo se respeta y los créditos tienen techo.
+ * coincidir, el cupo se respeta y los créditos tienen techo. Todo corre contra los DAO pactados en
+ * Escenario —las clases que en producción leerían y escribirían en MySQL por JDBC—, así que la
+ * prueba comprueba solo la lógica, sin base de datos de por medio. El código 409 de HTTP avisa
+ * cuando la petición choca con el estado actual de la base.
  */
 class ServicioMatriculasTest {
 
@@ -36,6 +39,7 @@ class ServicioMatriculasTest {
 
         ReglaVioladaException ex = assertThrows(ReglaVioladaException.class,
                 () -> escenario.matriculasServicio.preparar(escenario.inscripcion(null)));
+        // con el periodo cerrado nadie entra ni sale: 409 con mensaje claro
         assertEquals(409, ex.getHttpStatus());
         assertEquals("El periodo 2026-2 está CERRADO: no se admiten matrículas ni cambios de sección.",
                 ex.getMessage());
@@ -83,6 +87,7 @@ class ServicioMatriculasTest {
 
     @Test
     void elTopeDeCreditosCuentaLosYaInscritos() {
+        // los 18 créditos ya cursados más los 3 de Cálculo pasarían del techo de 20
         escenario.yaInscritoEnCursosDeCreditos(12, 6);
 
         ReglaVioladaException ex = assertThrows(ReglaVioladaException.class,
@@ -93,6 +98,7 @@ class ServicioMatriculasTest {
 
     @Test
     void cambiarDeSeccionCuentaComoInscripcionNueva() {
+        // cambiar de grupo se revisa como inscripción nueva: con el periodo cerrado también salta el 409
         escenario.periodoEn(PeriodoAcademico.CERRADO);
         escenario.matriculaEnOtraSeccion(100, 9);
 
@@ -105,6 +111,7 @@ class ServicioMatriculasTest {
 
     @Test
     void enElMismoGrupoSePuedeActualizarLaNotaConElPeriodoCerrado() {
+        // el cierre del periodo veda inscribirse, pero no impide corregir una nota del grupo de siempre
         escenario.periodoEn(PeriodoAcademico.CERRADO);
         Matricula guardada = escenario.matriculaGuardada(100, 4.5);
 
@@ -115,6 +122,7 @@ class ServicioMatriculasTest {
 
     @Test
     void laFaltaDeAsistenciaMandaSobreLaNota() {
+        // con 3 faltas en 4 controles la asistencia queda en 25 %: se pierde el curso aunque la nota sea 5.0
         escenario.controlesDeAsistencia("FALTO", "FALTO", "FALTO", "ASISTIO");
         Matricula guardada = escenario.matriculaGuardada(100, 5.0);
 
@@ -138,6 +146,7 @@ class ServicioMatriculasTest {
 
         Matricula actualizada = escenario.matriculasServicio.sincronizarConCalificacion(notas);
 
+        // la nota 3.77 queda copiada en la matrícula y se comprueba que se haya enviado al DAO para guardarla
         assertEquals(3.77, actualizada.getNota());
         assertEquals(Matricula.APROBADO, actualizada.getEstado());
         verify(escenario.matriculas).actualizar(argThat(m -> m.getNota() == 3.77));

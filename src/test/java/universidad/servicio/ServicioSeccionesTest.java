@@ -11,7 +11,9 @@ import universidad.modelo.Seccion;
 
 /**
  * Reglas de apertura de grupos: el aula no se repite, el cupo no se falsea y un grupo con
- * matriculados no se borra — igual que el curso que los agrupa.
+ * matriculados no se borra — igual que el curso que los agrupa. Se prueba contra los DAO
+ * pactados en Escenario, las clases que en producción hablarían con MySQL por JDBC, así que
+ * ninguna de estas pruebas toca la base de datos.
  */
 class ServicioSeccionesTest {
 
@@ -28,6 +30,7 @@ class ServicioSeccionesTest {
 
     @Test
     void laMismaAulaNoSeRepiteEnElCursoYElPeriodo() {
+        // da igual mayúsculas o minúsculas: "a-202" y "A-202" son la misma aula
         escenario.otraSeccionEnElPeriodo(9, "A-202");
         Seccion nueva = escenario.seccion(0, "a-202", 25);
 
@@ -60,6 +63,7 @@ class ServicioSeccionesTest {
 
     @Test
     void unGrupoVacioSePuedeEliminar() {
+        // sin matriculados encima, borrar no rompe nada: el servicio deja pasar
         escenario.ocupacionDeSeccion(0);
 
         escenario.seccionesServicio.validarEliminacion(Escenario.SECCION);
@@ -85,6 +89,7 @@ class ServicioSeccionesTest {
 
     @Test
     void lasSeccionesInscribiblesSonLasDelCatalogoDelEstudiante() {
+        // el servicio no inventa grupos: devuelve los que el DAO le pasó para ese estudiante
         when(escenario.secciones.listarInscribiblesPara(Escenario.ESTUDIANTE))
                 .thenReturn(List.of(escenario.seccion(9, "A-202", 25)));
 
@@ -104,11 +109,13 @@ class ServicioSeccionesTest {
 
         List<Seccion> inscribibles = escenario.seccionesServicio.inscribiblesPara(Escenario.ESTUDIANTE);
 
+        // de los dos grupos ofrecidos solo pasa el de 3 créditos: el otro empujaría sobre el techo de 20
         assertEquals(List.of(9), inscribibles.stream().map(Seccion::getIdSeccion).toList());
     }
 
     @Test
     void unEstudianteQueNoExisteNoPuedeConsultarSuCatalogo() {
+        // el 400 de HTTP avisa que la petición trae un id que no está en la base
         ReglaVioladaException ex = assertThrows(ReglaVioladaException.class,
                 () -> escenario.seccionesServicio.inscribiblesPara(999));
         assertEquals(400, ex.getHttpStatus());

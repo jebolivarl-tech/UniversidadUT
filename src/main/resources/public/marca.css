@@ -1,5 +1,9 @@
 @charset "UTF-8";
-/* Sistema de diseño institucional: tonos, logo, botones y acento por módulo. */
+/*
+ * Hoja de estilo común a todas las páginas: los colores y nombres (variables que empiezan con dos
+ * guiones), el logo, los botones y el color propio de cada módulo. Se escribe una vez aquí y las
+ * demás hojas lo usan por su nombre, así cambiar un tono en un sitio lo cambia en todos.
+ */
 :root {
   color-scheme: light;
 
@@ -29,6 +33,7 @@
   --sombra-l: 0 18px 38px rgb(6 64 46 / 16%), 0 4px 10px rgb(6 64 46 / 8%);
   --salto: cubic-bezier(0.22, 0.68, 0.36, 1);
 
+  /* Un color fuerte y otro claro por módulo; la página los elige según su data-modulo */
   --mi: #0b6e4f;         --mi-suave: #e2f1ea;
   --estudiantes: #0f766e; --estudiantes-suave: #dcefef;
   --carreras: #a16207;    --carreras-suave: #faf0d7;
@@ -53,7 +58,7 @@ body {
 
 * { box-sizing: border-box; }
 
-/* ---------- marca institucional ---------- */
+/* ---------- logo y nombre de la universidad ---------- */
 
 .marca-institucional {
   display: flex;
@@ -164,13 +169,16 @@ body {
 .boton-peligro { background: var(--peligro); }
 .boton-peligro:hover { background: #7f1d14; }
 
+/* Marco dorado que se ve al recorrer las cajas con el teclado, no con el ratón */
 :focus-visible {
   outline: 3px solid var(--oro-500);
   outline-offset: 2px;
   border-radius: var(--radio-s);
 }
 
-/* ---------- acento por modulo (tarjetas del panel y paginas) ---------- */
+/* ---------- el color del módulo (tarjetas del panel y páginas) ---------- */
+/* Dos caminos para el mismo trabajo: body[data-modulo] pinta la página entera y .modulo--... pinta
+   la tarjeta suelta del panel. */
 
 .marco-acento {
   background: var(--acento);
@@ -212,6 +220,7 @@ body[data-modulo="usuarios"] { --acento: var(--usuarios); --acento-suave: var(--
   stroke-linejoin: round;
 }
 
+/* La gente que pide menos movimiento en el sistema operativo no ve las animaciones */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -222,4 +231,5 @@ body[data-modulo="usuarios"] { --acento: var(--usuarios); --acento-suave: var(--
   }
 }
 
+/* El atributo hidden de HTML tiene prioridad sobre cualquier otra regla de esta hoja */
 [hidden] { display: none !important; }

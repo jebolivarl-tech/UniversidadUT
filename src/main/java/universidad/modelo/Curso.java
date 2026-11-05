@@ -2,6 +2,11 @@ package universidad.modelo;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+/**
+ * Una asignatura: nombre, cuántos créditos vale y a qué carrera pertenece, con el profesor que suele
+ * dictarla. Los créditos pesan en la regla que limita cuántos puede juntar un estudiante en un
+ * periodo; el rango permitido lo vigila MySQL, no esta clase.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Curso {
 
@@ -11,9 +16,11 @@ public class Curso {
     private int idCarrera;
     private int idProfesor;
 
+    // Vacío a propósito: así la arma Jackson al leer el JSON y el DAO al leer la fila.
     public Curso() {
     }
 
+    /** Alta: el id lo pone la base de datos al insertar. */
     public Curso(String nombre, int creditos, int idCarrera, int idProfesor) {
         this.nombre = nombre;
         this.creditos = creditos;

@@ -8,6 +8,8 @@
   <title>Carreras - Universidad del Tolima</title>
   <link rel="stylesheet" href="marca.css" />
   <style>
+    /* Hoja de estilo de esta pantalla. Los colores se guardan en variables para reutilizarlos;
+       los nombres hablan de azul, pero los valores puestos son los verdes de la marca. */
     :root {
       --azul1: #06402e;
       --azul2: #0b6e4f;
@@ -230,6 +232,7 @@
     }
   </style>
 </head>
+<!-- data-modulo aquí solo elige el color de la página; esta pantalla la maneja script.js con funciones propias -->
 <body data-modulo="carreras">
   <div class="container">
     <div class="header">
@@ -245,6 +248,7 @@
 
     <h2>Carreras y facultades</h2>
 
+    <!-- Un solo formulario sirve para las dos cosas: crear y, al pulsar Editar, cambiar la elegida -->
     <form id="carreraForm" class="carrera-form">
       <label for="nombreCarrera">Nombre de la carrera
         <input id="nombreCarrera" name="nombre" type="text" maxlength="100" required />
@@ -259,6 +263,7 @@
     <div id="message" role="status" aria-live="polite"></div>
 
     <div class="table-wrap">
+      <!-- El encabezado va escrito aquí; las filas las pone script.js con la lista de Java -->
       <table>
         <thead>
           <tr>

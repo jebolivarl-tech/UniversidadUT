@@ -1,4 +1,13 @@
-/* Motor genérico de las pantallas CRUD. Cada página declara data-modulo="<clave>". */
+/*
+ * Este archivo describe las pantallas de registro (facultades, profesores, matrículas…) y tiene las
+ * funciones que arman la tabla y el formulario siguiendo esa descripción. Cada página HTML solo
+ * escribe en su <body> data-modulo="facultades" (o el módulo que sea) y carga este archivo.
+ * Los datos se piden a la API REST del proyecto: cada módulo tiene su dirección, por ejemplo
+ * /api/facultades, y el método HTTP dice la acción (leer, crear, cambiar, borrar). Lo que viaja es
+ * JSON, un texto con llaves y comas que Java y el navegador entienden los dos.
+ */
+// En cada módulo: recurso = dirección, idField = nombre del identificador, columnas = lo que se ve
+// en la tabla, campos = lo que pide el formulario y filtros = cajas de búsqueda.
 const MODULOS = {
   facultades: {
     titulo: 'Facultades',
@@ -72,6 +81,7 @@ const MODULOS = {
     titulo: 'Secciones',
     recurso: 'secciones',
     idField: 'idSeccion',
+    // Estas dos reglas se comprueban en Java al guardar; el texto solo avisa al usuario antes de que pierda el tiempo.
     ayuda: 'Un aula no puede repetir el mismo curso y periodo, y el cupo no puede bajar de los estudiantes ya matriculados.',
     columnas: [
       { campo: 'idSeccion', etiqueta: 'ID' },
@@ -113,6 +123,7 @@ const MODULOS = {
     campos: [
       { nombre: 'idEstudiante', etiqueta: 'Estudiante', tipo: 'referencia', ref: 'estudiantes', requerido: true },
       { nombre: 'idSeccion', etiqueta: 'Sección', tipo: 'referencia', ref: 'secciones', requerido: true,
+        // en vez de ofrecer todos los grupos, se piden solo los que este estudiante puede inscribir
         inscribiblesDe: 'idEstudiante' },
       { nombre: 'nota', etiqueta: 'Nota (0.0 a 5.0, opcional)', tipo: 'numero', min: 0, max: 5, step: 0.01 },
     ],
@@ -121,6 +132,7 @@ const MODULOS = {
     titulo: 'Asistencias',
     recurso: 'asistencias',
     idField: 'idAsistencia',
+    // sin esta línea solo el administrativo guarda; pasar lista también le toca al profesor
     escritura: ['ADMINISTRATIVO', 'PROFESOR'],
     ayuda: 'Solo se pasa lista a estudiantes matriculados en la sección y con fechas dentro del periodo. Cuatro faltas sin justificar hacen perder el curso.',
     columnas: [
@@ -145,6 +157,7 @@ const MODULOS = {
     titulo: 'Calificaciones',
     recurso: 'calificaciones',
     idField: 'idCalificacion',
+    // el profesor califica sus propios grupos; la lista que ve cada rol la decide Java
     escritura: ['ADMINISTRATIVO', 'PROFESOR'],
     ayuda: 'El servidor calcula el promedio (30 % + 30 % + 40 %) y el estado: se aprueba con 3.0, salvo que las faltas no justificadas hagan perder el curso por asistencia.',
     columnas: [
@@ -192,20 +205,25 @@ const MODULOS = {
   },
 };
 
+// Últimas listas leídas (facultades, carreras, cursos…). Se guardan para no volver a pedirlas cada
+// vez que la pantalla abre una lista desplegable.
 const CATALOGOS = {};
+// En qué lista buscar el número que trae una columna: idFacultad se resuelve leyendo facultades.
 const REFERENCIA_POR_COLUMNA = {
   idFacultad: 'facultades', idCarrera: 'carreras', idProfesor: 'profesores',
   idEstudiante: 'estudiantes', idCurso: 'cursos', idPeriodo: 'periodos', idSeccion: 'secciones',
 };
 
-let rolActual = '';
-let edicion = null;
+let rolActual = '';      // rol de la sesión conectada; lo devuelve /api/me al abrir la página
+let edicion = null;      // registro que se está corrigiendo; null significa que el formulario crea uno nuevo
 
+// Cada lista tiene su propio nombre de identificador; esto lo recuerda por si hace falta buscarlo.
 function idDe(recurso) {
   return { facultades: 'idFacultad', carreras: 'idCarrera', profesores: 'idProfesor', estudiantes: 'idEstudiante',
     cursos: 'idCurso', periodos: 'idPeriodo', secciones: 'idSeccion' }[recurso];
 }
 
+// Texto que se ve en las opciones de las listas desplegables y en algunas columnas de la tabla.
 function etiqueta(item, recurso) {
   if (recurso === 'profesores' || recurso === 'estudiantes') return `${item.nombre} ${item.apellido}`.trim();
   if (recurso === 'secciones') {
@@ -217,6 +235,9 @@ function etiqueta(item, recurso) {
   return String(item.nombre ?? item.id ?? '');
 }
 
+// El navegador pide la lista al servidor con las cookies de la sesión y la guarda en CATALOGOS.
+// Si ya estaba leída no se vuelve a pedir. Cuando Java contesta mal, por ejemplo 401 porque la
+// sesión se cerró, se deja la lista vacía y se avisa arriba de la página en vez de romper la pantalla.
 async function cargarCatalogo(recurso) {
   if (CATALOGOS[recurso]) return CATALOGOS[recurso];
   try {
@@ -230,6 +251,8 @@ async function cargarCatalogo(recurso) {
   return CATALOGOS[recurso];
 }
 
+// Reúne las listas que necesitan los desplegables y los filtros de esta pantalla y las pide todas
+// a la vez, para no abrir la página con casillas vacías mientras llegan.
 async function cargarCatalogosNecesarios(config) {
   const necesarios = new Set();
   for (const lista of [config.campos, config.filtros, config.columnas]) {
@@ -241,7 +264,10 @@ async function cargarCatalogosNecesarios(config) {
   await Promise.all([...necesarios].map(cargarCatalogo));
 }
 
-/** Llena un <select> de referencia desde la lista dada, conservando la selección si sigue existiendo. */
+/**
+ * Escribe las opciones en una lista desplegable. Si el usuario ya había elegido una opción que
+ * sigue existiendo, se mantiene elegida; si no, se vuelve al "Seleccione…" de la primera línea.
+ */
 function llenarReferencia(control, items, campo, textoSiVacio) {
   const anterior = control.value;
   control.textContent = '';
@@ -263,6 +289,8 @@ function llenarReferencia(control, items, campo, textoSiVacio) {
   if ([...control.options].some((o) => o.value === anterior && !o.disabled)) control.value = anterior;
 }
 
+// Arma en la pantalla el tipo de caja que toca: lista desplegable, casilla de sí/no o campo de
+// texto, número, fecha o contraseña. El prefijo distingue los campos del formulario de los filtros.
 function crearControl(campo, prefijo) {
   const label = document.createElement('label');
   const texto = document.createElement('span');
@@ -306,6 +334,8 @@ function crearControl(campo, prefijo) {
   return label;
 }
 
+// Saca lo que el usuario escribió para armar el JSON que se envía. La casilla manda 1 o 0, los
+// números y las referencias se pasan a número, y un campo vacío manda null para que Java lo deje vacío.
 function leerValor(campo) {
   const control = document.getElementById(`campo-${campo.nombre}`);
   if (!control) return undefined;
@@ -315,6 +345,8 @@ function leerValor(campo) {
   return campo.tipo === 'numero' || campo.tipo === 'referencia' ? Number(texto) : texto;
 }
 
+// Deja el formulario vacío, o le escribe los valores del registro que se va a corregir. La contraseña
+// nunca se rellena: si se deja vacía, Java conserva la que ya tenía. Al crear, la casilla arranca en sí.
 function escribirValor(campo, valor) {
   const control = document.getElementById(`campo-${campo.nombre}`);
   if (!control) return;
@@ -333,20 +365,23 @@ function escribirValor(campo, valor) {
   control.value = valor === null || valor === undefined ? '' : valor;
 }
 
-/**
- * Un campo marcado con `inscribiblesDe` deja de ser una lista a ciegas: pregunta al servidor qué
- * puede elegir este registro (en matrículas, los grupos de la carrera del estudiante con periodo
- * abierto, cupo disponible y créditos que le caben) y ofrece solo eso.
+/*
+ * En matrículas, la lista de grupos no se muestra a ciegas: el navegador pregunta a Java qué grupos
+ * puede inscribir el estudiante elegido (los de su carrera, con periodo abierto, con cupo libre y
+ * con los créditos que todavía le caben en el periodo) y ofrece solo eso. Así el formulario no
+ * admite una matrícula que el servidor tendría que rechazar al guardar.
  */
 async function actualizarInscribibles(campo) {
   const destino = document.getElementById(`campo-${campo.nombre}`);
   const driver = document.getElementById(`campo-${campo.inscribiblesDe}`);
   if (!destino || !driver) return;
   const id = Number(driver.value);
+  // Sin estudiante elegido no hay nada que preguntar: la lista queda vacía con el aviso.
   if (!Number.isInteger(id) || id <= 0) {
     llenarReferencia(destino, [], campo, 'Seleccione primero el estudiante.');
     return;
   }
+  // La consulta se envía con las cookies de la sesión; solo el administrativo tiene permiso.
   const respuesta = await fetch(`${API_BASE_URL}/api/estudiantes/${id}/secciones-inscribibles`,
     { credentials: 'include' });
   if (!respuesta.ok) {
@@ -356,6 +391,8 @@ async function actualizarInscribibles(campo) {
   llenarReferencia(destino, await respuesta.json(), campo, 'No hay grupos disponibles para este estudiante.');
 }
 
+// Enlaza el campo que manda (el estudiante) con el que obedece (el grupo): al cambiar el primero se
+// vuelve a preguntar la lista. La marca en el propio campo evita enlazar el mismo cambio dos veces.
 function enlazarInscribibles(config) {
   for (const campo of config.campos) {
     if (!campo.inscribiblesDe) continue;
@@ -368,7 +405,10 @@ function enlazarInscribibles(config) {
   }
 }
 
-/** Al editar, la sección actual no aparece entre las inscribibles: ahí el estudiante ya está matriculado. */
+/*
+ * Al editar una matrícula, Java no trae el grupo actual entre los grupos inscribibles: el estudiante
+ * ya está matriculado allí. Para poder guardar sin cambiar de grupo, aquí se carga la lista completa.
+ */
 function mostrarCatalogoCompleto(config) {
   for (const campo of config.campos) {
     if (!campo.inscribiblesDe) continue;
@@ -377,6 +417,8 @@ function mostrarCatalogoCompleto(config) {
   }
 }
 
+// Junta los valores del formulario en el objeto que se convierte a JSON. La contraseña vacía no se
+// manda, para no borrar la que ya está guardada en la base.
 function cuerpoDelFormulario(config) {  const cuerpo = {};
   for (const campo of config.campos) {
     const valor = leerValor(campo);
@@ -386,6 +428,8 @@ function cuerpoDelFormulario(config) {  const cuerpo = {};
   return cuerpo;
 }
 
+// Convierte un dato en el texto que se pinta en la celda: fechas legibles, sí/no, cupos usados
+// sobre el total, y los números de otra tabla sustituidos por su nombre buscándolo en la lista leída.
 function textoCelula(columna, item) {
   const valor = item[columna.campo];
   if (columna.formato === 'fecha') return formatDateForDisplay(valor);
@@ -400,7 +444,10 @@ function textoCelula(columna, item) {
   return valor === null || valor === undefined ? '' : String(valor);
 }
 
-/** El estado académico se colorea: aprueba, reprueba o pierde por asistencia. */
+/*
+ * El estado académico (en curso, aprobado, reprobado o perdido por asistencia) lo calcula Java, nunca
+ * el formulario. Aquí solo se cambia ese nombre por la clase de estilo con la que la hoja lo pinta.
+ */
 const ESTADOS_ACADEMICOS = {
   EN_CURSO: 'curso',
   APROBADO: 'aprobado',
@@ -408,10 +455,19 @@ const ESTADOS_ACADEMICOS = {
   PERDIDO_POR_FALTA_DE_ASISTENCIA: 'perdido',
 };
 
+// Roles que pueden guardar en este módulo. Ocultar el formulario es comodidad, no seguridad: Java
+// comprueba la sesión en cada petición y rechaza igual al rol sin permiso.
 function puedeEscribir(config) {
   return (config.escritura || ['ADMINISTRATIVO']).includes(rolActual);
 }
 
+/*
+ * Vuelve a armar la tabla: borra encabezado y filas, pide la lista al servidor con las cookies de la
+ * sesión y escribe una fila por registro. Los filtros de la pantalla viajan en la misma dirección
+ * (por ejemplo /api/secciones?periodo=3), así filtra Java y no se traen datos de más.
+ * Se llama otra vez después de guardar o de borrar, para que en pantalla quede lo que de verdad
+ * quedó en la base de datos, con el ID y el estado que calculó el servidor.
+ */
 async function refrescarTabla(config) {
   const tbody = document.getElementById('tabla');
   const cabecera = document.getElementById('encabezados');
@@ -427,6 +483,7 @@ async function refrescarTabla(config) {
   thAccion.textContent = 'Acciones';
   cabecera.appendChild(thAccion);
 
+  // Los filtros escritos en la pantalla se pasan a Java como texto detrás del signo de pregunta.
   const consulta = new URLSearchParams();
   for (const filtro of config.filtros || []) {
     const control = document.getElementById(`filtro-${filtro.nombre}`);
@@ -439,6 +496,7 @@ async function refrescarTabla(config) {
     return;
   }
   const datos = await response.json();
+  // El aviso de "no hay registros" aparece solo cuando la lista viene vacía.
   document.getElementById('vacio').hidden = datos.length > 0;
   document.getElementById('contador').textContent = `${datos.length} registro(s)`;
 
@@ -458,6 +516,7 @@ async function refrescarTabla(config) {
     editar.type = 'button';
     editar.textContent = 'Editar';
     editar.addEventListener('click', () => {
+      // Editar no guarda nada: copia el registro al formulario, que pasa a modo edición, y baja la vista hasta él.
       edicion = item;
       mostrarCatalogoCompleto(config);
       for (const campo of config.campos) escribirValor(campo, item[campo.nombre]);
@@ -472,6 +531,7 @@ async function refrescarTabla(config) {
       borrar.className = 'delete';
       borrar.textContent = 'Eliminar';
       borrar.addEventListener('click', async () => {
+        // Se pide confirmación antes de borrar. Si el registro tiene datos dependientes, Java lo impide y cuenta por qué.
         if (!window.confirm(`¿Eliminar el registro #${item[config.idField]} de ${config.titulo}?`)) return;
         const respuesta = await fetch(`${API_BASE_URL}/api/${config.recurso}/${item[config.idField]}`, {
           method: 'DELETE', credentials: 'include',
@@ -486,6 +546,8 @@ async function refrescarTabla(config) {
   }
 }
 
+// Deja el resultado arriba de la página: en verde si Java contestó bien, en rojo con el mensaje que
+// escribió el servidor para explicar el problema.
 async function notificar(response, accion) {
   if (response.ok) {
     showMessage(`${accion} correcto.`);
@@ -495,6 +557,9 @@ async function notificar(response, accion) {
   return false;
 }
 
+// Un solo botón crea y cambia: sin registro elegido se envía con POST a la dirección del módulo; con
+// uno elegido se envía con PUT a la dirección de ese registro. El formulario se convierte a JSON y se
+// manda con las cookies de la sesión, para que Java sepa quién escribe.
 async function guardar(evento, config) {
   evento.preventDefault();
   const esEdicion = Boolean(edicion);
@@ -512,6 +577,7 @@ async function guardar(evento, config) {
   await refrescarTabla(config);
 }
 
+// El formulario vuelve a modo "crear": se olvida del registro y se queda vacío.
 function salirDeEdicion(config) {
   edicion = null;
   document.getElementById('guardar').textContent = 'Registrar';
@@ -520,6 +586,11 @@ function salirDeEdicion(config) {
   enlazarInscribibles(config);
 }
 
+/*
+ * Prepara la pantalla. Lo primero es saber quién está conectado: se pide /api/me con las cookies de
+ * la sesión y de ahí sale el rol. Si la sesión ya se cerró, Java contesta 401 (no autorizado), así
+ * que se regresa al login en lugar de mostrar una página vacía o a medias.
+ */
 async function montarModulo(clave) {
   const config = MODULOS[clave];
   if (!config) return;
@@ -537,6 +608,7 @@ async function montarModulo(clave) {
   await cargarCatalogosNecesarios(config);
 
   const filtros = document.getElementById('filtros');
+  // La fila de filtros solo aparece en los módulos que la definen.
   if (config.filtros && config.filtros.length > 0) {
     filtros.hidden = false;
     for (const filtro of config.filtros) filtros.appendChild(crearControl(filtro, 'filtro'));
@@ -566,6 +638,7 @@ async function montarModulo(clave) {
   document.getElementById('formulario').addEventListener('submit', (evento) => guardar(evento, config));
   document.getElementById('cancelar').addEventListener('click', () => salirDeEdicion(config));
   if (!puedeEscribir(config)) {
+    // Rol de solo lectura: se oculta el formulario para no ofrecer algo que Java rechazaría igual.
     document.getElementById('formulario').hidden = true;
     showMessage(`Su rol (${rolActual}) es de solo lectura en este módulo.`, false);
   } else {
@@ -576,5 +649,7 @@ async function montarModulo(clave) {
   await refrescarTabla(config);
 }
 
+// La clave data-modulo del <body> dice qué pantalla montar. Las páginas que no la llevan (el panel
+// o el login) ni siquiera cargan este archivo, y aquí tampoco se arrancaría nada.
 const MODULO_PAGINA = document.body.dataset.modulo;
 if (MODULO_PAGINA) montarModulo(MODULO_PAGINA);

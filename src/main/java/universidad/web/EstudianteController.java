@@ -6,6 +6,12 @@ import java.util.Map;
 import universidad.dao.EstudianteDAO;
 import universidad.modelo.Estudiante;
 
+/**
+ * Rutas HTTP de la tabla de estudiantes, escritas una por una como {@link CarreraController}.
+ * Ver la lista es para administrativo y profesor; crear, cambiar y borrar queda solo en manos del
+ * administrativo, y el rol se comprueba en el servidor en cada petición con los datos de la sesión,
+ * no con lo que la página diga.
+ */
 public class EstudianteController {
 
     private final EstudianteDAO dao;
@@ -14,6 +20,7 @@ public class EstudianteController {
         this.dao = dao;
     }
 
+    /** Monta las rutas de estudiantes en la aplicación. */
     public void registrar(Javalin app) {
         app.get("/api/estudiantes", ctx -> {
             Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO, Sesion.PROFESOR);
@@ -22,6 +29,7 @@ public class EstudianteController {
 
         app.post("/api/estudiantes", ctx -> {
             Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO);
+            // El JSON del cuerpo se convierte en objeto Estudiante y se revisa antes de insertarlo.
             Estudiante nuevo = Http.leerJson(ctx, Estudiante.class);
             validar(nuevo);
             try {
@@ -31,6 +39,7 @@ public class EstudianteController {
             } catch (SQLException ex) {
                 throw traducir(ex, "No fue posible registrar el estudiante.");
             }
+            // 201: creado. El id que asignó la base de datos viene dentro del objeto respondido.
             ctx.status(201).json(nuevo);
         });
 
@@ -39,6 +48,7 @@ public class EstudianteController {
             int id = Http.leerId(ctx, "id");
             Estudiante estudiante = Http.leerJson(ctx, Estudiante.class);
             validar(estudiante);
+            // Manda el id de la dirección: nadie puede cambiar una ficha distinta metiendo otro id en el JSON.
             estudiante.setIdEstudiante(id);
             if (dao.leerPorId(id) == null) {
                 throw new ApiException(404, "El estudiante no existe.");
@@ -68,12 +78,18 @@ public class EstudianteController {
         });
     }
 
+    /** Revisa nombre, apellidos, correo, fecha de nacimiento y carrera antes de tocar la base de datos. */
     private static void validar(Estudiante e) {
         if (!Validaciones.esEstudianteValido(e)) {
             throw new ApiException(400, "Complete todos los campos del estudiante con valores válidos.");
         }
     }
 
+    /**
+     * Un error de la base de datos no se muestra tal cual: se convierte en el código HTTP que le toca.
+     * Si MySQL se queja de un dato repetido o mal relacionado, el problema es lo que envió quien llama,
+     * así que es 409; cualquier otra falla es 500. El detalle técnico se queda fuera de la respuesta.
+     */
     private static ApiException traducir(SQLException ex, String mensajeGenerico) {
         if (Http.esConflictoDeIntegridad(ex)) {
             return new ApiException(409, "Los datos entran en conflicto con un registro existente.");

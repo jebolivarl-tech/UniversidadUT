@@ -40,9 +40,17 @@ import universidad.servicio.ServicioMatriculas;
 import universidad.servicio.ServicioSecciones;
 
 /**
- * Define y monta los CRUD REST de los módulos académicos sobre {@link CrudController}: filtros por
- * query string y roles por operación. Las reglas académicas no viven aquí: se delega en los
- * servicios de dominio, que son los mismos que usa la aplicación de escritorio.
+ * Aquí se arma la API REST de los módulos académicos (API REST: las rutas HTTP que el navegador llama
+ * para traer datos en JSON, en vez de pedir páginas). Se crea un {@link CrudController} por tabla y se
+ * le dice lo suyo: cómo filtrar la lista con los números que vienen en la dirección, qué roles pueden
+ * leer y cuáles escribir, y qué revisar antes de guardar. Cada controlador trabaja sobre el DAO de su
+ * tabla, que es quien escribe y lee en MySQL con JDBC (la librería de Java para hablar con la base de
+ * datos) aprovechando el pool de conexiones, las conexiones abiertas que se reutilizan.
+ *
+ * Las reglas académicas (quién puede matricularse, el cupo de un grupo, la nota definitiva, perder por
+ * inasistencia) no se escriben aquí: se llama a los servicios de {@code universidad.servicio}, que son
+ * los únicos que deciden si algo está permitido. Así la regla vive en un sitio y ninguna ruta se la
+ * inventa por su cuenta.
  */
 public final class ModulosCrud {
 
@@ -66,6 +74,7 @@ public final class ModulosCrud {
     private final ServicioCalificaciones servicioCalificaciones =
             new ServicioCalificaciones(estudiantes, secciones, matriculas, asistencias, servicioMatriculas);
 
+    /** Monta el CRUD de las ocho tablas académicas y las dos consultas de cupos. */
     public void registrar(Javalin app) {
         registrarFacultades(app);
         registrarProfesores(app);
@@ -78,11 +87,13 @@ public final class ModulosCrud {
         registrarCupos(app);
     }
 
+    /** Arma el controlador de datos propios con los mismos DAO ya creados aquí. */
     public MiController controladorMiInformacion() {
         return new MiController(facultades, profesores, periodos, cursos, secciones, matriculas,
                 asistencias, calificaciones, estudiantes, carreras);
     }
 
+    /** Facultades: el caso más simple, campos y nada más que revisar. */
     private void registrarFacultades(Javalin app) {
         new CrudController<>(facultades, Facultad.class, "facultades", "la facultad")
                 .fijarId(Facultad::setIdFacultad)
@@ -91,6 +102,7 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /** Profesores: se puede filtrar por facultad y no se deja apuntar a una facultad inexistente. */
     private void registrarProfesores(Javalin app) {
         new CrudController<>(profesores, Profesor.class, "profesores", "el profesor")
                 .fijarId(Profesor::setIdProfesor)
@@ -101,6 +113,7 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /** Periodos: la lista se puede pedir filtrando por estado escrito en la dirección, y el estado se guarda en mayúsculas. */
     private void registrarPeriodos(Javalin app) {
         new CrudController<>(periodos, PeriodoAcademico.class, "periodos", "el periodo académico")
                 .fijarId(PeriodoAcademico::setIdPeriodo)
@@ -115,6 +128,7 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /** Cursos: se comprueba que la carrera y el profesor existan, y no se borra un curso que aún tenga matrículas. */
     private void registrarCursos(Javalin app) {
         new CrudController<>(cursos, Curso.class, "cursos", "el curso")
                 .fijarId(Curso::setIdCurso)
@@ -132,6 +146,12 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /**
+     * Secciones: antes de guardar, el servicio comprueba que el curso, el profesor y el periodo existan,
+     * que la aula esté libre en ese horario y que el cupo sea coherente con los ocupados. El listado
+     * cambia según quien lo pida: el profesor solo recibe los grupos que dicta, y encima se pueden
+     * filtrar por periodo, curso o profesor.
+     */
     private void registrarSecciones(Javalin app) {
         new CrudController<>(secciones, Seccion.class, "secciones", "la sección")
                 .fijarId(Seccion::setIdSeccion)
@@ -151,6 +171,12 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /**
+     * Matrículas: el servicio decide si el estudiante puede entrar en ese grupo (periodo abierto, carrera
+     * que coincide, que no esté repetido, que quede cupo y que no pase del tope de créditos), y de paso
+     * rellena el curso y el periodo que le tocan. El profesor que lista matrículas solo ve las de los
+     * cursos de sus secciones.
+     */
     private void registrarMatriculas(Javalin app) {
         new CrudController<>(matriculas, Matricula.class, "matriculas", "la matrícula")
                 .fijarId(Matricula::setIdMatricula)
@@ -173,6 +199,7 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /** Asistencias: aquí también puede escribir el profesor, pero solo en sus propias secciones. */
     private void registrarAsistencias(Javalin app) {
         new CrudController<>(asistencias, Asistencia.class, "asistencias", "la asistencia")
                 .fijarId(Asistencia::setIdAsistencia)
@@ -184,6 +211,7 @@ public final class ModulosCrud {
                 .registrar(app);
     }
 
+    /** Calificaciones: el profesor escribe en las suyas y, al guardar, se recalcula la nota definitiva y se sincroniza la matrícula. */
     private void registrarCalificaciones(Javalin app) {
         new CrudController<>(calificaciones, Calificacion.class, "calificaciones", "la calificación")
                 .fijarId(Calificacion::setIdCalificacion)
@@ -197,8 +225,9 @@ public final class ModulosCrud {
     }
 
     /**
-     * Consultas que los formularios necesitan para no adivinar: cuánto cupo queda en un grupo y
-     * qué grupos puede inscribir un estudiante concreto.
+     * Dos consultas que los formularios necesitan para no adivinar: cuántos cupos quedan en un grupo y
+     * qué grupos puede inscribirse un estudiante concreto. Van en el servidor porque el cupo real solo lo
+     * sabe la base de datos; calcularlo en la página permitiría matricular de más.
      */
     private void registrarCupos(Javalin app) {
         app.get("/api/secciones/{id}/cupos", ctx -> {
@@ -208,6 +237,7 @@ public final class ModulosCrud {
             if (seccion == null) {
                 throw new ApiException(404, "No se encontró la sección.");
             }
+            // Además del rol, un profesor no puede leer el cupo de un grupo que no dicta.
             asegurarSeccionVisible(ctx, id);
             ctx.json(Map.of(
                     "idSeccion", id,
@@ -217,13 +247,15 @@ public final class ModulosCrud {
                     "disponibles", servicioMatriculas.cuposDisponibles(id)));
         });
 
+        // Grupos en los que ese estudiante puede inscribirse. Ruta de administración, porque sirve para
+        // matricular a otro desde su pantalla de gestión.
         app.get("/api/estudiantes/{id}/secciones-inscribibles", ctx -> {
             Sesion.requerirRol(ctx, Sesion.ADMINISTRATIVO);
             ctx.json(servicioSecciones.inscribiblesPara(Http.leerId(ctx, "id")));
         });
     }
 
-    /** El profesor solo ve asistencias de sus secciones; el administrativo ve todas. */
+    /** El profesor solo ve asistencias de sus secciones; el administrativo ve todas. Con sección y fecha en la dirección se acota la lista. */
     private List<Asistencia> listarAsistenciasVisibles(Context ctx) {
         Integer seccion = Http.enteroQuery(ctx, "seccion");
         if (seccion != null) {
@@ -240,6 +272,7 @@ public final class ModulosCrud {
         return asistencias.listarTodos();
     }
 
+    /** Mismo reparto que las asistencias: por sección, por estudiante, o todo para el administrativo. */
     private List<Calificacion> listarCalificacionesVisibles(Context ctx) {
         Integer seccion = Http.enteroQuery(ctx, "seccion");
         if (seccion != null) {
@@ -257,28 +290,35 @@ public final class ModulosCrud {
         return calificaciones.listarTodos();
     }
 
+    /** Primero el permiso sobre la sección, después la regla del servicio (fecha, estudiante matriculado). */
     private void validarAsistenciaEscribible(Context ctx, Asistencia a) {
         asegurarSeccionEscribible(ctx, a.getIdSeccion());
         servicioAsistencias.preparar(a);
     }
 
+    /** Igual que con la asistencia: sección propia y luego que el estudiante esté matriculado en ella. */
     private void validarCalificacionEscribible(Context ctx, Calificacion c) {
         asegurarSeccionEscribible(ctx, c.getIdSeccion());
         servicioCalificaciones.preparar(c);
     }
 
-    /** Devuelve la calificación con el promedio y estado ya calculados, y sincroniza la matrícula. */
+    /** Paso final antes de responder: la definitiva ya calculada se vuelca en la matrícula para que queden igualadas. */
     private Calificacion propagarNotaDefinitiva(Calificacion c) {
         servicioCalificaciones.propagarNotaDefinitiva(c);
         return c;
     }
 
+    /** Filtro de lectura: un profesor no consulta datos de grupos ajenos; el administrativo no tiene ese límite. */
     private void asegurarSeccionVisible(Context ctx, int idSeccion) {
         if (Sesion.PROFESOR.equals(Sesion.rol(ctx)) && !esSeccionPropia(ctx, idSeccion)) {
             throw new ApiException(403, "Solo puede consultar las secciones que usted dicta.");
         }
     }
 
+    /**
+     * Filtro de escritura. Se comprueba aquí y no solo en la página: la ruta HTTP se puede llamar a mano
+     * con cualquier número de sección, y sin esta línea un profesor podría poner notas en un grupo ajeno.
+     */
     private void asegurarSeccionEscribible(Context ctx, int idSeccion) {
         if (Sesion.ADMINISTRATIVO.equals(Sesion.rol(ctx))) {
             return;
@@ -288,6 +328,7 @@ public final class ModulosCrud {
         }
     }
 
+    /** El id del profesor se toma de la sesión, nunca de lo que mande el navegador. */
     private boolean esSeccionPropia(Context ctx, int idSeccion) {
         Integer mio = Sesion.idProfesor(ctx);
         if (mio == null) {
@@ -297,12 +338,14 @@ public final class ModulosCrud {
         return seccion != null && seccion.getIdProfesor() == mio;
     }
 
+    /** Atajo para pedir que una fila referenciada exista antes de guardar (400 si no). */
     private static void requerir(boolean existe, String nombreRecurso) {
         if (!existe) {
             throw new ApiException(400, "No se encontró " + nombreRecurso + " registrado en la base de datos.");
         }
     }
 
+    /** Deja la lista con los que tengan ese número, o la lista entera si no se pidió ningún filtro. */
     private static <T> List<T> porFiltro(List<T> lista, Function<T, Integer> lector, Integer filtro) {
         if (filtro == null) {
             return lista;

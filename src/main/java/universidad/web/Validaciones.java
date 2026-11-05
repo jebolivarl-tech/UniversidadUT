@@ -14,10 +14,19 @@ import universidad.modelo.PeriodoAcademico;
 import universidad.modelo.Profesor;
 import universidad.modelo.Seccion;
 
-/** Reglas de validación de entrada (alineadas con los tamaños y enums de la base de datos). */
+/**
+ * Última revisión de lo que llega de la API REST antes de tocar la base de datos. El JSON del cuerpo de
+ * la petición HTTP ya se convirtió en objeto; aquí se mira que los campos traigan algo, que quepan en la
+ * columna de MySQL y que los valores posibles sean los mismos que la base de datos acepta. Copiar esos
+ * límites a propósito permite contestar un 400 con un texto claro en lugar de dejar que la base de datos
+ * falle y que {@link CrudController} tenga que adivinar el motivo.
+ * Cada método devuelve un sí o un no; quien llama arma el mensaje.
+ */
 public final class Validaciones {
 
+    /** Un correo con forma mínima: algo, arroba, algo con un punto. Sin espacios. */
     private static final String PATRON_EMAIL = "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$";
+    /** Usuario de 3 a 50 caracteres, solo letras, números, punto, guion bajo y guion: es lo que cabe y lo que se puede escribir a mano. */
     private static final String PATRON_USUARIO = "^[A-Za-z0-9._-]{3,50}$";
 
     private static final Set<String> ROLES = Set.of(Sesion.ADMINISTRATIVO, Sesion.PROFESOR, Sesion.ESTUDIANTE);
@@ -33,6 +42,7 @@ public final class Validaciones {
     private Validaciones() {
     }
 
+    /** Nombre y apellidos, correo válido, fecha de nacimiento que no esté en el futuro y una carrera elegida. */
     public static boolean esEstudianteValido(Estudiante e) {
         return e != null
                 && textoValido(e.getNombre(), 60)
@@ -43,14 +53,17 @@ public final class Validaciones {
                 && e.getIdCarrera() > 0;
     }
 
+    /** Carrera con nombre y facultad apuntada. */
     public static boolean esCarreraValida(Carrera c) {
         return c != null && textoValido(c.getNombre(), 100) && c.getIdFacultad() > 0;
     }
 
+    /** Facultad con nombre; el decano es opcional, pero si viene no puede pasar de 100 caracteres. */
     public static boolean esFacultadValida(Facultad f) {
         return f != null && textoValido(f.getNombre(), 100) && (f.getDecano() == null || f.getDecano().length() <= 100);
     }
 
+    /** Profesor con nombre, apellidos y facultad; el correo puede ir vacío, pero si viene tiene que ser válido. */
     public static boolean esProfesorValido(Profesor p) {
         return p != null
                 && textoValido(p.getNombre(), 60)
@@ -59,6 +72,7 @@ public final class Validaciones {
                 && p.getIdFacultad() > 0;
     }
 
+    /** Periodo con nombre, fechas en orden (el inicio no puede caer después del fin) y un estado conocido. */
     public static boolean esPeriodoValido(PeriodoAcademico p) {
         return p != null
                 && textoValido(p.getNombre(), 50)
@@ -69,6 +83,7 @@ public final class Validaciones {
                 && ESTADOS_PERIODO.contains(p.getEstado().toUpperCase());
     }
 
+    /** Curso con nombre, créditos entre 1 y 10, carrera y profesor asignados. */
     public static boolean esCursoValido(Curso c) {
         return c != null
                 && textoValido(c.getNombre(), 100)
@@ -77,6 +92,7 @@ public final class Validaciones {
                 && c.getIdProfesor() > 0;
     }
 
+    /** Sección con curso, profesor y periodo, aula opcional y un cupo entre 1 y 200. */
     public static boolean esSeccionValida(Seccion s) {
         return s != null
                 && s.getIdCurso() > 0
@@ -86,7 +102,11 @@ public final class Validaciones {
                 && s.getCupoMaximo() >= 1 && s.getCupoMaximo() <= 200;
     }
 
-    /** El curso y el periodo no se validan aquí: los deriva la sección en ServicioMatriculas. */
+    /**
+     * Matrícula con estudiante y sección apuntados. El curso y el periodo no se comprueban aquí: los
+     * deriva la sección en {@link universidad.servicio.ServicioMatriculas}, para que nadie pueda escribir
+     * un periodo que no corresponde al grupo.
+     */
     public static boolean esMatriculaValida(Matricula m) {
         return m != null
                 && m.getIdEstudiante() > 0
@@ -94,6 +114,7 @@ public final class Validaciones {
                 && notaOpcionalValida(m.getNota());
     }
 
+    /** Asistencia de un estudiante en una sección, con fecha de hoy o anterior y un estado conocido. */
     public static boolean esAsistenciaValida(Asistencia a) {
         return a != null
                 && a.getIdEstudiante() > 0
@@ -104,6 +125,7 @@ public final class Validaciones {
                 && ESTADOS_ASISTENCIA.contains(a.getEstado().toUpperCase());
     }
 
+    /** Nota de un estudiante en una sección: cada parcial que venga debe estar en la escala, y al menos uno tiene que traer valor. */
     public static boolean esCalificacionValida(Calificacion c) {
         return c != null
                 && c.getIdEstudiante() > 0
@@ -114,7 +136,13 @@ public final class Validaciones {
                 && (c.getNotaParcial1() != null || c.getNotaParcial2() != null || c.getNotaExamenFinal() != null);
     }
 
-    /** En creación la contraseña es obligatoria; en edición puede venir vacía (no se cambia). */
+    /**
+     * Cuenta de acceso. Al crear, la contraseña es obligatoria y de diez caracteres como mínimo; al editar
+     * puede simplemente no venir (campo ausente en el JSON), y eso significa "no la cambies". El usuario
+     * tiene que encajar en el patrón, el rol tiene que ser uno de los tres conocidos, y si el rol es
+     * PROFESOR o ESTUDIANTE la cuenta debe ir atada a su ficha: sin esa atadura no habría forma de saber
+     * qué datos le tocan.
+     */
     public static boolean esCuentaValida(Cuenta c, boolean esCreacion) {
         if (c == null || c.getUsername() == null || !c.getUsername().matches(PATRON_USUARIO)) {
             return false;
@@ -138,6 +166,7 @@ public final class Validaciones {
         return c.getPassword().length() >= 10 && c.getPassword().length() <= 200;
     }
 
+    /** Nota sin escribir es válido (aún no se toma); si viene, tiene que estar entre 0.0 y 5.0. */
     private static boolean notaOpcionalValida(Double nota) {
         return nota == null || (nota >= NOTA_MINIMA && nota <= NOTA_MAXIMA);
     }
@@ -146,6 +175,7 @@ public final class Validaciones {
         return valor == null || valor.isBlank();
     }
 
+    /** Texto con algo dentro y sin pasarse del largo de la columna. */
     private static boolean textoValido(String valor, int maximo) {
         return valor != null && !valor.isBlank() && valor.length() <= maximo;
     }

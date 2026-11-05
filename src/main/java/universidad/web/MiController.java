@@ -32,8 +32,20 @@ import universidad.servicio.ReglasAcademicas;
 import universidad.modelo.Seccion;
 
 /**
- * Datos propios de la cuenta en sesión (/api/mi). El estudiante no puede leer los listados
- * generales, así que aquí se resuelven en el servidor los nombres de curso, profesor y periodo.
+ * Lo que cada usuario ve de lo suyo dentro de la API REST (las rutas HTTP que llama el navegador para
+ * traer datos, en vez de páginas): /api/mi devuelve el perfil, las secciones, las calificaciones, las
+ * asistencias y las matrículas de la cuenta que está en sesión. La sesión es el registro que quedó en
+ * el servidor tras iniciar sesión, con el rol y las fichas vinculadas.
+ *
+ * Hace falta este controlador aparte porque el estudiante no tiene permiso para los listados generales
+ * de cursos, profesores o periodos. Sería un callejón sin salida: recibiría números sueltos sin saber
+ * a quién corresponden. Así que aquí el servidor, que sí puede leer esas tablas por su DAO (la clase
+ * que escribe y lee cada tabla con JDBC, la librería de Java para hablar con MySQL), arma el nombre de
+ * curso, profesor y periodo antes de responder.
+ *
+ * Lo importante de la seguridad: el id con el que se filtra se saca de la sesión, nunca de lo que el
+ * navegador escriba en la dirección. Por eso un estudiante no puede ver las notas de otro cambiando un
+ * número en la URL.
  */
 public final class MiController {
 
@@ -64,6 +76,7 @@ public final class MiController {
         this.carreras = carreras;
     }
 
+    /** Monta las cinco rutas /api/mi en la aplicación. */
     public void registrar(Javalin app) {
         app.get("/api/mi", this::perfil);
         app.get("/api/mi/secciones", this::listarSecciones);
@@ -72,9 +85,11 @@ public final class MiController {
         app.get("/api/mi/matriculas", this::listarMatriculas);
     }
 
+    /** Tarjeta de la persona en sesión: nombre, carrera o facultad y un resumen de sus notas. */
     private void perfil(Context ctx) {
         Sesion.requerirAutenticacion(ctx);
         Map<String, Object> respuesta = new LinkedHashMap<>();
+        // Lo que se responde sale de la sesión, no de un parámetro que alguien pudiera inventar.
         respuesta.put("username", Sesion.username(ctx));
         respuesta.put("rol", Sesion.rol(ctx));
 
@@ -90,6 +105,8 @@ public final class MiController {
         if (Sesion.ESTUDIANTE.equals(Sesion.rol(ctx))) {
             Estudiante estudiante = estudiantes.leerPorId(Sesion.requerirIdEstudiante(ctx));
             Carrera carrera = estudiante == null ? null : carreras.leerPorId(estudiante.getIdCarrera());
+            // Listas completas convertidas a consulta por id: así armar el nombre de cada materia no
+            // obliga a recorrer la lista de cursos una vez por nota.
             Map<Integer, Seccion> mapaSecciones = porId(secciones.listarTodos(), Seccion::getIdSeccion);
             Map<Integer, Curso> mapaCursos = porId(cursos.listarTodos(), Curso::getIdCurso);
 
@@ -109,9 +126,11 @@ public final class MiController {
             return;
         }
 
+        // El administrativo se queda solo con usuario y rol: él ya ve todo en sus módulos.
         ctx.json(respuesta);
     }
 
+    /** Grupos del que está en sesión: los del estudiante por su matrícula, los del profesor por su id. */
     private void listarSecciones(Context ctx) {
         Sesion.requerirAutenticacion(ctx);
         Map<Integer, Curso> mapaCursos = porId(cursos.listarTodos(), Curso::getIdCurso);
@@ -137,12 +156,14 @@ public final class MiController {
             fila.put("profesor", nombreCompleto(mapaProfesores.get(s.getIdProfesor())));
             fila.put("periodo", nombre(mapaPeriodos.get(s.getIdPeriodo()), PeriodoAcademico::getNombre));
             fila.put("aula", s.getAula());
+            // El cupo se manda ya contado ("12 de 30") para que la página no tenga que sumarlo.
             fila.put("ocupacion", s.getCuposOcupados() + " de " + s.getCupoMaximo());
             filas.add(fila);
         }
         ctx.json(filas);
     }
 
+    /** Notas del estudiante, o de los estudiantes de las secciones que dicta el profesor. */
     private void listarCalificaciones(Context ctx) {
         Sesion.requerirAutenticacion(ctx);
         Map<Integer, Curso> mapaCursos = porId(cursos.listarTodos(), Curso::getIdCurso);
@@ -164,6 +185,7 @@ public final class MiController {
         ctx.json(filas);
     }
 
+    /** Controles de asistencia de lo mismo: las propias del estudiante, las de las secciones del profesor. */
     private void listarAsistencias(Context ctx) {
         Sesion.requerirAutenticacion(ctx);
         Map<Integer, Curso> mapaCursos = porId(cursos.listarTodos(), Curso::getIdCurso);
@@ -204,6 +226,11 @@ public final class MiController {
         ctx.json(filas);
     }
 
+    /**
+     * Decide qué notas se listan según el rol. El id del estudiante y del profesor salen de la sesión;
+     * si el profesor pide todo, aquí mismo se descartan las secciones que no dicta, y el resto de roles
+     * se manda al módulo general con un 403.
+     */
     private List<Calificacion> misCalificaciones(Context ctx) {
         if (Sesion.ESTUDIANTE.equals(Sesion.rol(ctx))) {
             return calificaciones.listarPorEstudiante(Sesion.requerirIdEstudiante(ctx));
@@ -215,6 +242,7 @@ public final class MiController {
         throw new ApiException(403, "Su rol no tiene calificaciones propias; use el módulo de calificaciones.");
     }
 
+    /** Lo mismo para las asistencias, con el mismo filtro por secciones propias. */
     private List<Asistencia> misAsistencias(Context ctx) {
         if (Sesion.ESTUDIANTE.equals(Sesion.rol(ctx))) {
             return asistencias.listarPorEstudiante(Sesion.requerirIdEstudiante(ctx));
@@ -226,18 +254,20 @@ public final class MiController {
         throw new ApiException(403, "Su rol no tiene asistencias propias; use el módulo de asistencias.");
     }
 
+    /** Compara el profesor de la sección con el id del profesor en sesión; sin ficha o sin sección, no es suya. */
     private boolean esSeccionPropia(Context ctx, int idSeccion) {
         Integer mio = Sesion.idProfesor(ctx);
         Seccion seccion = secciones.leerPorId(idSeccion);
         return mio != null && seccion != null && seccion.getIdProfesor() == mio;
     }
 
+    /** De una sección se saca el curso que dicta; null si la sección ya no existe. */
     private Curso cursoDe(int idSeccion, Map<Integer, Seccion> mapaSecciones, Map<Integer, Curso> mapaCursos) {
         Seccion seccion = mapaSecciones.get(idSeccion);
         return seccion == null ? null : mapaCursos.get(seccion.getIdCurso());
     }
 
-    /** Promedio general, materias aprobadas, perdidas por inasistencia y porcentaje de asistencia. */
+    /** Promedio general, materias aprobadas, perdidas por inasistencia y porcentaje de asistencia. Solo cuenta las notas ya cerradas. */
     private static Map<String, Object> resumen(List<Calificacion> notas, List<Asistencia> controles) {
         List<Double> definitivas = notas.stream()
                 .filter(c -> !Calificacion.EN_CURSO.equals(c.getEstado()))
@@ -265,6 +295,9 @@ public final class MiController {
         return facultad == null ? "" : facultad.getNombre();
     }
 
+    // Los métodos de abajo devuelven cadena vacía en lugar de fallar: una ficha borrada o sin vincular
+    // no debe tumbar la respuesta de toda la página.
+
     private static String nombreCompleto(Profesor p) {
         return p == null ? "" : p.getNombre() + " " + p.getApellido();
     }
@@ -273,10 +306,12 @@ public final class MiController {
         return curso == null ? "" : curso.getNombre();
     }
 
+    /** El nombre del campo que se pida del objeto, o cadena vacía si el objeto no está. */
     private static <T> String nombre(T item, Function<T, String> lector) {
         return item == null ? "" : lector.apply(item);
     }
 
+    /** Pasa una lista a consulta por id, para no recorrerla entera cada vez que hay que buscar un nombre. */
     private static <T> Map<Integer, T> porId(List<T> lista, Function<T, Integer> lectorId) {
         return lista.stream().collect(Collectors.toMap(lectorId, item -> item, (a, b) -> a));
     }
